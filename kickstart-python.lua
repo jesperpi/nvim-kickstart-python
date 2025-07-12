@@ -1,3 +1,7 @@
+vim.opt.number = true
+vim.opt.relativenumber = true
+
+
 -- BOOTSTRAP the plugin manager `lazy.nvim` https://lazy.folke.io/installation
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 local lazyLocallyAvailable = vim.uv.fs_stat(lazypath) ~= nil

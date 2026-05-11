@@ -63,6 +63,7 @@ local plugins = {
 		init = function()
 			-- this snippet enables auto-completion
 			local lspCapabilities = vim.lsp.protocol.make_client_capabilities()
+      lspCapabilities.general.positionEncodings = { "utf-16" }
 			lspCapabilities.textDocument.completion.completionItem.snippetSupport = true
 
 			-- setup pyright with completion capabilities
@@ -85,28 +86,14 @@ local plugins = {
 		end,
 	},
 
-	-- COMPLETION
-	{
-		"saghen/blink.cmp",
-		version = "v0.*", -- blink.cmp requires a release tag for its rust binary
-
-		opts = {
-			-- 'default' for mappings similar to built-in vim completion
-			-- 'super-tab' for mappings similar to vscode (tab to accept, arrow keys to navigate)
-			-- 'enter' for mappings similar to 'super-tab' but with 'enter' to accept
-			keymap = { preset = "default" },
-
-			highlight = {
-				-- sets the fallback highlight groups to nvim-cmp's highlight groups
-				-- useful for when your theme doesn't support blink.cmp
-				use_nvim_cmp_as_default = true,
-			},
-			-- set to 'mono' for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
-			-- adjusts spacing to ensure icons are aligned
-			nerd_font_variant = "mono",
-		},
-	},
-
+        -- COMPLETION
+        {
+          "saghen/blink.cmp",
+          version = "v0.*", -- blink.cmp requires a release tag for its rust binary
+          opts = {
+            keymap = { preset = "default" },
+          },
+        },
 	-----------------------------------------------------------------------------
 	-- PYTHON REPL
 	-- A basic REPL that opens up as a horizontal split
@@ -256,23 +243,20 @@ local plugins = {
 		end,
 	},
 
-	-- Configuration for the python debugger
-	-- * configures debugpy for us
-	-- * uses the debugpy installation from mason
-	{
-		"mfussenegger/nvim-dap-python",
-		dependencies = "mfussenegger/nvim-dap",
-		config = function()
-			-- fix: E5108: Error executing lua .../Local/nvim-data/lazy/nvim-dap-ui/lua/dapui/controls.lua:14: attempt to index local 'element' (a nil value)
-			-- see: https://github.com/rcarriga/nvim-dap-ui/issues/279#issuecomment-1596258077
-			require("dapui").setup()
-			-- uses the debugypy installation by mason
-			local debugpyPythonPath = require("mason-registry").get_package("debugpy"):get_install_path()
-				.. "/venv/bin/python3"
-			require("dap-python").setup(debugpyPythonPath, {}) ---@diagnostic disable-line: missing-fields
-		end,
-	},
 
+        {
+          "mfussenegger/nvim-dap-python",
+          dependencies = "mfussenegger/nvim-dap",
+          config = function()
+            require("dapui").setup()
+
+            -- Use Mason's debugpy venv python (stable path, avoids mason-registry API changes)
+            local mason_path = vim.fn.stdpath("data") .. "/mason"
+            local debugpyPythonPath = mason_path .. "/packages/debugpy/venv/bin/python"
+        
+            require("dap-python").setup(debugpyPythonPath, {}) ---@diagnostic disable-line: missing-fields
+          end,
+        },
 	-----------------------------------------------------------------------------
 	-- EDITING SUPPORT PLUGINS
 	-- some plugins that help with python-specific editing operations

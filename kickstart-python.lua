@@ -290,6 +290,15 @@ local plugins = {
       vim.g.vimtex_view_method = 'zathura'  -- or your preferred PDF viewer
     end,
   },
+  {
+    "sindrets/diffview.nvim",
+    dependencies = "nvim-lua/plenary.nvim",
+    config = function()
+      require("diffview").setup({
+        use_icons = true,
+      })
+    end,
+  },
   -- AI Coding assistant
   {
     "olimorris/codecompanion.nvim",
@@ -323,11 +332,39 @@ local plugins = {
             })
           end,
         },
-      vim.keymap.set('n', '<C-a>', '<cmd>CodeCompanionChat Toggle<CR>', { desc = "Toggle CodeCompanion" })
+       display = {
+	 cli = {
+          window = {
+            layout = "vertical",
+            width = 0.3,
+            opts = {
+              list = true,
+	     },
+	   },
+         },
+       },
+       vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
+       vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
+       vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
+       vim.cmd([[cab cc CodeCompanion]]),
+       vim.cmd([[cab b #{buffer}]]),
+       vim.cmd([[cab ch #{chat}]]),
+       vim.cmd([[cab cl #{clipboard}]]),
       })
     end,
   },
 }
+
+-- Run local config if it exists
+local local_config = vim.fn.getcwd() .. "/.nvim.lua"
+if vim.fn.filereadable(local_config) == 1 then
+  dofile(local_config)
+end
+
+-- edit config
+vim.keymap.set("n", "<leader>settings", ":e ~/workspace/nvim-kickstart-python/kickstart-python.lua")
+vim.keymap.set("n", "<leader>load", ":Lazy sync")
+
 
 --------------------------------------------------------------------------------
 

@@ -290,6 +290,42 @@ local plugins = {
       vim.g.vimtex_view_method = 'zathura'  -- or your preferred PDF viewer
     end,
   },
+  -- AI Coding assistant
+  {
+    "olimorris/codecompanion.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+    },
+
+    config = function()
+      require("codecompanion").setup({
+        strategies = {
+          chat = {
+            adapter = "openai",
+          },
+          inline = {
+            adapter = "openai",
+          },
+        },
+  
+        adapters = {
+          openai = function()
+            return require("codecompanion.adapters").extend("openai", {
+              env = {
+                api_key = "OPENAI_API_KEY",
+              },
+              schema = {
+                model = {
+                  default = "gpt-4.1",
+                },
+              },
+            })
+          end,
+        },
+      })
+    end,
+  },
 }
 
 --------------------------------------------------------------------------------

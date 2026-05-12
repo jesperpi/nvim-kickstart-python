@@ -323,6 +323,7 @@ local plugins = {
             })
           end,
         },
+      vim.keymap.set('n', '<C-a>', '<cmd>CodeCompanionChat Toggle<CR>', { desc = "Toggle CodeCompanion" })
       })
     end,
   },

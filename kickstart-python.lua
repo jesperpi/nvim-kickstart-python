@@ -25,6 +25,7 @@ vim.opt.rtp:prepend(lazypath)
 -- define what key is used for `<leader>`. Here, we use `,`.
 -- (`:help mapleader` for information what the leader key is)
 vim.g.mapleader = ","
+vim.g.maplocalleader = ";"
 
 local plugins = {
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
@@ -350,16 +351,12 @@ local plugins = {
        vim.cmd([[cab b #{buffer}]]),
        vim.cmd([[cab ch #{chat}]]),
        vim.cmd([[cab cl #{clipboard}]]),
+       vim.cmd([[cab ag @{agent}]]),
+       vim.cmd([[cab fi @{files}]]),
       })
     end,
   },
 }
-
--- Run local config if it exists
-local local_config = vim.fn.getcwd() .. "/.nvim.lua"
-if vim.fn.filereadable(local_config) == 1 then
-  dofile(local_config)
-end
 
 -- edit config
 vim.keymap.set("n", "<leader>settings", ":e ~/workspace/nvim-kickstart-python/kickstart-python.lua")
@@ -407,3 +404,11 @@ vim.api.nvim_create_autocmd("FileType", {
 		iabbrev("function", "def")
 	end,
 })
+
+
+-- Run local config if it exists
+local local_config = vim.fn.getcwd() .. "/.nvim.lua"
+if vim.fn.filereadable(local_config) == 1 then
+  dofile(local_config)
+end
+

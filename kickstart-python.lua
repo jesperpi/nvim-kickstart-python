@@ -390,6 +390,25 @@ local plugins = {
       })
     end,
   },
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = {},
+    config = function()
+      require("gitsigns").setup()
+      local gs = package.loaded.gitsigns
+  
+      -- Navigation between hunks
+      vim.keymap.set('n', ']c', gs.next_hunk, { desc = "Next hunk" })
+      vim.keymap.set('n', '[c', gs.prev_hunk, { desc = "Prev hunk" })
+      -- Stage/reset hunk
+      vim.keymap.set('n', '<leader>gs', gs.stage_hunk, { desc = "Stage hunk" })
+      vim.keymap.set('n', '<leader>gr', gs.reset_hunk, { desc = "Reset hunk" })
+      -- Preview hunk
+      vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { desc = "Preview hunk" })
+      -- Blame line
+      vim.keymap.set('n', '<leader>gb', gs.blame_line, { desc = "Git Blame" })
+    end,
+  },
 }
 
 -- edit config

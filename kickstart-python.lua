@@ -300,6 +300,39 @@ local plugins = {
       })
     end,
   },
+  {
+    "stevearc/overseer.nvim",
+    opts = {},
+    config = function()
+      require("overseer").setup({
+        -- You may customize task configs here if you like
+      })
+      vim.api.nvim_create_user_command("Make", function(params)
+        -- Insert args at the '$*' in the makeprg
+        local cmd, num_subs = vim.o.makeprg:gsub("%$%*", params.args)
+        if num_subs == 0 then
+          cmd = cmd .. " " .. params.args
+        end
+        local task = require("overseer").new_task({
+          cmd = vim.fn.expandcmd(cmd),
+          components = {
+            {
+              "on_output_quickfix",
+              open = not params.bang,
+              open_height = 8,
+              errorformat = vim.o.errorformat,
+            },
+            "default",
+          },
+        })
+        task:start()
+      end, {
+        desc = "Run your makeprg as an Overseer task",
+        nargs = "*",
+        bang = true,
+      })
+    end,
+  },
   -- AI Coding assistant
   {
     "olimorris/codecompanion.nvim",
@@ -348,7 +381,8 @@ local plugins = {
        vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
        vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
        vim.cmd([[cab cc CodeCompanion]]),
-       vim.cmd([[cab b #{buffer}]]),
+       vim.cmd([[cab ccc CodeCompanionChat]]),
+       vim.cmd([[cab bu #{buffer}]]),
        vim.cmd([[cab ch #{chat}]]),
        vim.cmd([[cab cl #{clipboard}]]),
        vim.cmd([[cab ag @{agent}]]),

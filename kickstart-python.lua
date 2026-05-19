@@ -344,47 +344,54 @@ local plugins = {
 
     config = function()
       require("codecompanion").setup({
-        strategies = {
+        interactions = {
           chat = {
-            adapter = "openai",
+            adapter = {name = "codex", model = "gpt-5.3-codex",},
           },
           inline = {
-            adapter = "openai",
+            adapter = "codex",
           },
+          cmd = {
+            adapter = "codex",
+          }
         },
   
         adapters = {
-          openai = function()
+	  openai = function()
             return require("codecompanion.adapters").extend("openai", {
-              env = {
-                api_key = "OPENAI_API_KEY",
-              },
               schema = {
                 model = {
-                  default = "gpt-4.1",
-                },
-              },
-            })
+                  default = "gpt-5.3-codex",
+		}
+	      },
+	    })
           end,
+	  acp = {
+            codex = function()
+              return require("codecompanion.adapters").extend("codex", {
+                commands = {
+                  default = {
+                    "npx",
+                    "@zed-industries/codex-acp",
+                  },
+                },
+                defaults = {
+                  auth_method = "openai-api-key",
+                  session_config_options = {
+                    model = "gpt-5.3-codex",
+                  },
+                },
+              })
+            end,
+          },
         },
-       display = {
-	 cli = {
-          window = {
-            layout = "vertical",
-            width = 0.3,
-            opts = {
-              list = true,
-	     },
-	   },
-         },
-       },
-       rules = {
-	 default = {
-	   description = "Rules for all projects",
-	   files = {
-	     "AGENT.md",
-	   },
-         },
+	       rules = {
+		 default = {
+		   description = "Rules for all projects",
+		   files = {
+		     "AGENT.md",
+		   },
+	         },
 	 python_rules = {
 	   description = "Rules for python projects", 
            ---@return boolean
@@ -397,13 +404,38 @@ local plugins = {
              "**/*.pyi",
 	   },
          },
-	 opts = {
-	   chat = {autoload = "default", enabled = true}
-	 },
-       },
-       vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
-       vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
-       vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
+		 opts = {
+		   chat = {autoload = "default", enabled = true}
+		 },
+	       },
+               prompt_library = {
+                 ["Neovim Tips (Cheatsheet)"] = {
+                   strategy = "chat",
+                   description = "Ask for Neovim tips with cheatsheet context",
+                   opts = {
+                     is_default = true,
+                     is_slash_cmd = true,
+                     short_name = "nvimtips",
+                     auto_submit = true,
+                     user_prompt = true,
+                   },
+                   context = {
+                     {
+                       type = "file",
+                       path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md",
+                     },
+                   },
+                   prompts = {
+                     {
+                       role = "system",
+                       content = "Answer tersely. Prefer concrete Neovim actions and key sequences.",
+                     },
+                   },
+                 },
+               },
+	       vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
+	       vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
+	       vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
        vim.cmd([[cab cc CodeCompanion]]),
        vim.cmd([[cab ccc CodeCompanionChat]]),
        vim.cmd([[cab bu #{buffer}]]),
@@ -435,30 +467,11 @@ local plugins = {
   },
 }
 -- hotkey for asking about nvim stuff
-vim.keymap.set(
-  "n",
-  "<leader>?",
-  function()
-    -- Read cheatsheet.md into a string
-    local cheatsheet_path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md"
-    local cheatsheet = ""
-    local f = io.open(cheatsheet_path, "r")
-    if f then
-      cheatsheet = f:read("*a")
-      f:close()
-    else
-      print("cheatsheet.md not found!")
-      return
-    end
+vim.api.nvim_create_user_command("NvimTips", function()
+  vim.cmd("CodeCompanion /nvimtips")
+end, { desc = "Ask CodeCompanion for Neovim tips with cheatsheet context" })
 
-    -- Open codecompanion chat with context and terse instruction
-    require("codecompanion").open_chat{
-      context = cheatsheet,
-      instruction = "Give terse, to the point answers."
-    }
-  end,
-  { desc = "CodeCompanion: Ask about kickstart cheatsheet" }
-)
+vim.keymap.set("n", "<leader>?", "<cmd>NvimTips<cr>", { desc = "CodeCompanion: Neovim tips (cheatsheet)" })
 -- edit config
 vim.keymap.set("n", "<leader>settings", ":e ~/workspace/nvim-kickstart-python/kickstart-python.lua")
 vim.keymap.set("n", "<leader>load", ":Lazy sync")
@@ -512,4 +525,3 @@ local local_config = vim.fn.getcwd() .. "/.nvim.lua"
 if vim.fn.filereadable(local_config) == 1 then
   dofile(local_config)
 end
-

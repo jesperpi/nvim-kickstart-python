@@ -1,3 +1,4 @@
+_G.KICKSTART_PROJECT_DIR = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
 vim.opt.number = true
 vim.opt.relativenumber = true
 
@@ -377,6 +378,29 @@ local plugins = {
 	   },
          },
        },
+       rules = {
+	 default = {
+	   description = "Rules for all projects",
+	   files = {
+	     "AGENT.md",
+	   },
+         },
+	 python_rules = {
+	   description = "Rules for python projects", 
+           ---@return boolean
+           enabled = function()
+             -- Don't show this group unless there is an init.py in the project
+	     return #vim.fn.glob(vim.fn.getcwd() .. "/**/__init__.py", 0, 1) > 0
+           end,
+	 
+	   files = {
+             "**/*.pyi",
+	   },
+         },
+	 opts = {
+	   chat = {autoload = "default", enabled = true}
+	 },
+       },
        vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
        vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
        vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
@@ -410,7 +434,31 @@ local plugins = {
     end,
   },
 }
+-- hotkey for asking about nvim stuff
+vim.keymap.set(
+  "n",
+  "<leader>?",
+  function()
+    -- Read cheatsheet.md into a string
+    local cheatsheet_path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md"
+    local cheatsheet = ""
+    local f = io.open(cheatsheet_path, "r")
+    if f then
+      cheatsheet = f:read("*a")
+      f:close()
+    else
+      print("cheatsheet.md not found!")
+      return
+    end
 
+    -- Open codecompanion chat with context and terse instruction
+    require("codecompanion").open_chat{
+      context = cheatsheet,
+      instruction = "Give terse, to the point answers."
+    }
+  end,
+  { desc = "CodeCompanion: Ask about kickstart cheatsheet" }
+)
 -- edit config
 vim.keymap.set("n", "<leader>settings", ":e ~/workspace/nvim-kickstart-python/kickstart-python.lua")
 vim.keymap.set("n", "<leader>load", ":Lazy sync")

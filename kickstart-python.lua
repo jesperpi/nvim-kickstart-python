@@ -512,6 +512,8 @@ vim.keymap.set("n", "<leader>?", "<cmd>NvimTips<cr>", { desc = "CodeCompanion: N
 vim.keymap.set("n", "<leader>settings", ":e " .. KICKSTART_PROJECT_DIR .. "/kickstart-python.lua")
 vim.keymap.set("n", "<leader>load", ":Lazy sync")
 
+
+vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]])
 --------------------------------------------------------------------------------
 
 -- tell lazy.nvim to load and configure all the plugins

@@ -386,64 +386,65 @@ local plugins = {
             end,
           },
         },
-	       rules = {
-		 default = {
-		   description = "Rules for all projects",
-		   files = {
-		     "AGENT.md",
-		   },
-	         },
-	 python_rules = {
-	   description = "Rules for python projects", 
-           ---@return boolean
-           enabled = function()
-             -- Don't show this group unless there is an init.py in the project
-	     return #vim.fn.glob(vim.fn.getcwd() .. "/**/__init__.py", 0, 1) > 0
-           end,
-	 
-	   files = {
-             "**/*.pyi",
-	   },
-         },
-		 opts = {
-		   chat = {autoload = "default", enabled = true}
-		 },
-	       },
-	               prompt_library = {
-	                 ["Neovim Tips (Cheatsheet)"] = {
-	                   interaction = "chat",
-                   description = "Ask for Neovim tips with cheatsheet context",
-                   opts = {
-                     is_default = true,
-                     is_slash_cmd = true,
-                     alias = "nvimtips",
-                     auto_submit = true,
-                     user_prompt = true,
-                   },
-                   context = {
-                     {
-                       type = "file",
-                       path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md",
-                     },
-                   },
-                   prompts = {
-                     {
-                       role = "system",
-                       content = "Answer tersely. Prefer concrete Neovim actions and key sequences.",
-                     },
-                   },
-                 },
-               },
-	       vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
-	       vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
-	       vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
-       vim.cmd([[cab cc CodeCompanion]]),
-       vim.cmd([[cab ccc CodeCompanionChat]]),
-       vim.cmd([[cab bu #{buffer}]]),
-       vim.cmd([[cab ch #{chat}]]),
-       vim.cmd([[cab cl #{clipboard}]]),
-       vim.cmd([[cab ag @{agent}]]),
-       vim.cmd([[cab fi @{files}]]),
+		rules = {
+			default = {
+				description = "Rules for all projects",
+				files = {
+					"AGENT.md",
+				},
+			},
+			python_rules = {
+				description = "Rules for python projects",
+				---@return boolean
+				enabled = function()
+					-- Don't show this group unless there is a pyproject in the project
+					return #vim.fn.glob(vim.fn.getcwd() .. "/**/pyproject.toml", 0, 1) > 0
+				end,
+
+				files = {
+					"AGENT-python.md",
+					"**/*.pyi",
+				},
+			},
+			opts = {
+				chat = { autoload = "default", enabled = true },
+			},
+		},
+		prompt_library = {
+			["Neovim Tips (Cheatsheet)"] = {
+				interaction = "chat",
+				description = "Ask for Neovim tips with cheatsheet context",
+				opts = {
+					is_default = true,
+					is_slash_cmd = true,
+					alias = "nvimtips",
+					auto_submit = true,
+					user_prompt = true,
+				},
+				context = {
+					{
+						type = "file",
+						path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md",
+					},
+				},
+				prompts = {
+					{
+						role = "system",
+						content = "Answer tersely. Prefer concrete Neovim actions and key sequences.",
+					},
+				},
+			},
+		},
+		vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true }),
+		vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true }),
+		vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true }),
+		vim.cmd([[cab cc CodeCompanion]]),
+		vim.cmd([[cab ccc CodeCompanionChat]]),
+		vim.cmd([[cab bu #{buffer}]]),
+		vim.cmd([[cab ch #{chat}]]),
+		vim.cmd([[cab cl #{clipboard}]]),
+		vim.cmd([[cab ag @{agent}]]),
+		vim.cmd([[cab fi @{files}]]),
       })
     end,
   },

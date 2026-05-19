@@ -1,108 +1,132 @@
 # Neovim Python Kickstart Cheatsheet
 
-A summary of plugins, their roles, and main hotkeys/config for this setup.
+This is the quick-reference source for this config.
+
+## Assistant Lookup Preference
+- For plugin/mapping questions, use this file first.
+- Prefer this cheatsheet over scanning long config files unless details are missing or stale.
+- If a keymap/plugin behavior is not documented here, then read `kickstart-python.lua`.
 
 ## General Mappings
 - `<leader>` = `,`
 - `<localleader>` = `;`
 
----
+## Config-Level Commands and Mappings
+- `<leader>settings`: edit `kickstart-python.lua`
+- `<leader>load`: run `:Lazy sync`
+- `<leader>?`: run `:NvimTips` (CodeCompanion prompt with this cheatsheet context)
+- `:NvimTips`: ask for Neovim tips using this file as context
 
-## Plugin List & Key Hotkeys
+## Installed Plugins (Declared)
+- `folke/lazy.nvim` (bootstrapped plugin manager)
+- `WhoIsSethDaniel/mason-tool-installer.nvim`
+- `williamboman/mason.nvim`
+- `williamboman/mason-lspconfig.nvim`
+- `neovim/nvim-lspconfig`
+- `saghen/blink.cmp`
+- `Vigemus/iron.nvim`
+- `nvim-treesitter/nvim-treesitter`
+- `folke/tokyonight.nvim`
+- `mfussenegger/nvim-dap`
+- `rcarriga/nvim-dap-ui`
+- `nvim-neotest/nvim-nio`
+- `mfussenegger/nvim-dap-python`
+- `danymat/neogen`
+- `chrisgrieser/nvim-puppeteer`
+- `lervag/vimtex`
+- `sindrets/diffview.nvim`
+- `nvim-lua/plenary.nvim`
+- `stevearc/overseer.nvim`
+- `olimorris/codecompanion.nvim`
+- `lewis6991/gitsigns.nvim`
 
-### Tooling: LSP, Formatting, Linters
-- **mason-tool-installer.nvim**
-  - Bootstraps external tools: pyright (LSP), ruff (lint/format), debugpy (debugger), taplo (TOML LSP).
+## Hotkeys and Commands by Plugin
 
-- **nvim-lspconfig**
-  - Sets up LSPs (pyright, taplo, ruff)
+### Mason / LSP / Completion
+- `mason-tool-installer.nvim`
+  - Ensures: `pyright`, `ruff`, `debugpy`, `taplo`.
+- `nvim-lspconfig`
   - `gd`: goto definition
   - `gr`: goto references
   - `<leader>c`: code action
   - `<C-f>`: format file
+- `blink.cmp` (`keymap.preset = "default"`)
+  - Common defaults include completion accept/select/navigation keys from Blink's default preset.
+  - If behavior differs, check current Blink docs for exact default mapping set.
 
-- **blink.cmp**
-  - Completion engine (Rust-powered, requires v0.* release)
+### REPL
+- `iron.nvim`
+  - `<leader>i`: toggle REPL
+  - `<leader>I`: restart REPL
+  - `+` (normal/visual): send motion/selection to REPL
+  - `++`: send current line
 
----
-
-### Python REPL
-- **iron.nvim**
-  - Toggle Python REPL: `<leader>i`
-  - Restart REPL: `<leader>I`
-  - Send selection: `+` (operator, visual)
-  - Send line: `++`
-
----
-
-### Syntax Highlighting & Color
-- **nvim-treesitter**
-  - Modern syntax highlighting (auto-installs Python, TOML, etc.)
-
-- **tokyonight.nvim**
-  - Colorscheme (auto-loaded at startup)
-
----
+### Syntax / Theme
+- `nvim-treesitter`
+  - Highlight + indent enabled.
+  - Parsers ensured: `python`, `toml`, `rst`, `ninja`, `yaml`, `markdown`, `markdown_inline`.
+- `tokyonight.nvim`
+  - Auto-loaded as colorscheme.
 
 ### Debugging
-- **nvim-dap**
-  - Start/Continue: `<leader>dc`
-  - Add Breakpoint: `<leader>db`
-  - Terminate: `<leader>dt`
+- `nvim-dap`
+  - `<leader>dc`: continue/start debugger
+  - `<leader>db`: toggle breakpoint
+  - `<leader>dt`: terminate debugger
+- `nvim-dap-ui`
+  - `<leader>du`: toggle DAP UI
+  - UI auto-opens on start and closes on terminate/exit.
+- `nvim-dap-python`
+  - Uses Mason `debugpy` interpreter path.
 
-- **nvim-dap-ui**
-  - Toggle DAP UI: `<leader>du`
-  - UI auto-opens/closes with debugger
+### Editing / Python Helpers
+- `neogen`
+  - `<leader>a`: generate docstring
+- `nvim-puppeteer`
+  - Auto f-string conversion behavior in Python strings.
 
-- **nvim-dap-python**
-  - Python debugpy integration (auto-used from Mason install)
+### LaTeX
+- `vimtex` (loaded for `tex` filetype)
+  - Configured compiler: `latexmk`
+  - Configured viewer: `zathura`
+  - Standard VimTeX mappings to remember:
+    - `\ll`: start/compile
+    - `\lv`: view PDF
+    - `\lk`: stop compilation
+    - `\lc`: clean aux files
 
----
+### Git / Diffs / Tasks
+- `gitsigns.nvim`
+  - `]c`: next hunk
+  - `[c`: previous hunk
+  - `<leader>gs`: stage hunk
+  - `<leader>gr`: reset hunk
+  - `<leader>gp`: preview hunk
+  - `<leader>gb`: blame line
+- `diffview.nvim`
+  - No custom keymaps set here.
+  - Standard commands:
+    - `:DiffviewOpen`
+    - `:DiffviewFileHistory`
+    - `:DiffviewClose`
+- `overseer.nvim`
+  - `:Make`: run `makeprg` as Overseer task (custom user command in this config)
+  - Common Overseer commands:
+    - `:OverseerRun`
+    - `:OverseerToggle`
+    - `:OverseerTaskAction`
+    - `:OverseerQuickAction`
 
-### Editing & Utilities
-- **neogen**
-  - Generate Python docstrings: `<leader>a`
-
-- **nvim-puppeteer**
-  - f-string auto-conversion in Python
-
----
-
-### Writing/Docs/LaTeX
-- **vimtex**
-  - Only for LaTeX (`*.tex`)
-  - PDF view: zathura
-
----
-
-### Git
-- **gitsigns.nvim**
-  - Next hunk: `]c`
-  - Prev hunk: `[c`
-  - Stage hunk: `<leader>gs`
-  - Reset hunk: `<leader>gr`
-  - Preview hunk: `<leader>gp`
-  - Blame line: `<leader>gb`
-
----
-
-### Diffs & Builds
-- **diffview.nvim**
-  - Git diff UI (no default hotkey)
-
-- **overseer.nvim**
-  - Task runner. Run with `:Make`
-
----
-
-### AI
-- **codecompanion.nvim**
-  - Action menu: `<C-a>`
-  - Open/Toggle chat: `<localleader>a`
-  - Add chat: Visual + `ga`
-
----
-
-## Config Edit
-- Edit config: `<leader>settings`
-- Reload/sync plugins: `<leader>load`
+### AI Assistant
+- `codecompanion.nvim`
+  - `<C-a>`: `CodeCompanionActions`
+  - `<localleader>a`: `CodeCompanionChat Toggle`
+  - Visual `ga`: `CodeCompanionChat Add`
+  - Command-line abbreviations:
+    - `cc` -> `CodeCompanion`
+    - `ccc` -> `CodeCompanionChat`
+    - `bu` -> `#{buffer}`
+    - `ch` -> `#{chat}`
+    - `cl` -> `#{clipboard}`
+    - `ag` -> `@{agent}`
+    - `fi` -> `@{files}`

@@ -168,17 +168,18 @@ local plugins = {
 		opts = {
 			highlight = { enable = true }, -- enable treesitter syntax highlighting
 			indent = { enable = true }, -- better indentation behavior
-			ensure_installed = {
-				-- auto-install the Treesitter parser for python and related languages
-				"python",
-				"toml",
-				"rst",
-				"ninja",
-				"markdown",
-				"markdown_inline",
+				ensure_installed = {
+					-- auto-install the Treesitter parser for python and related languages
+					"python",
+					"toml",
+					"rst",
+					"ninja",
+					"yaml",
+					"markdown",
+					"markdown_inline",
+				},
 			},
 		},
-	},
 
 	-- COLORSCHEME
 	-- In neovim, the choice of color schemes is unfortunately not purely
@@ -408,14 +409,14 @@ local plugins = {
 		   chat = {autoload = "default", enabled = true}
 		 },
 	       },
-               prompt_library = {
-                 ["Neovim Tips (Cheatsheet)"] = {
-                   strategy = "chat",
+	               prompt_library = {
+	                 ["Neovim Tips (Cheatsheet)"] = {
+	                   interaction = "chat",
                    description = "Ask for Neovim tips with cheatsheet context",
                    opts = {
                      is_default = true,
                      is_slash_cmd = true,
-                     short_name = "nvimtips",
+                     alias = "nvimtips",
                      auto_submit = true,
                      user_prompt = true,
                    },
@@ -468,12 +469,12 @@ local plugins = {
 }
 -- hotkey for asking about nvim stuff
 vim.api.nvim_create_user_command("NvimTips", function()
-  vim.cmd("CodeCompanion /nvimtips")
+  require("codecompanion").prompt("nvimtips")
 end, { desc = "Ask CodeCompanion for Neovim tips with cheatsheet context" })
 
 vim.keymap.set("n", "<leader>?", "<cmd>NvimTips<cr>", { desc = "CodeCompanion: Neovim tips (cheatsheet)" })
 -- edit config
-vim.keymap.set("n", "<leader>settings", ":e ~/workspace/nvim-kickstart-python/kickstart-python.lua")
+vim.keymap.set("n", "<leader>settings", ":e " .. KICKSTART_PROJECT_DIR .. "/kickstart-python.lua")
 vim.keymap.set("n", "<leader>load", ":Lazy sync")
 
 

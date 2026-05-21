@@ -354,10 +354,17 @@ local plugins = {
 			end
 
 			require("codecompanion").setup({
+				display = {
+                                  chat = {
+                                    window = {
+                                      layout = "buffer",
+                                    },
+                                  },
+                                },
 				opts = { log_level = "TRACE" },
 				interactions = {
 					chat = {
-						adapter = { name = "codex", model = "gpt-5.3-codex" },
+						adapter = "codex",
 					},
 					inline = {
 						adapter = "codex",
@@ -387,7 +394,7 @@ local plugins = {
 									},
 								},
 								defaults = {
-									auth_method = "openai-api-key",
+									auth_method = "chatgpt",
 									session_config_options = {
 										model = "gpt-5.3-codex",
 									},

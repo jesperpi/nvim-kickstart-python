@@ -1,4 +1,10 @@
 _G.KICKSTART_PROJECT_DIR = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
+package.path = table.concat({
+	_G.KICKSTART_PROJECT_DIR .. "/lua/?.lua",
+	_G.KICKSTART_PROJECT_DIR .. "/lua/?/init.lua",
+	package.path,
+}, ";")
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 
@@ -517,7 +523,21 @@ vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]])
 --------------------------------------------------------------------------------
 
 -- tell lazy.nvim to load and configure all the plugins
-require("lazy").setup(plugins)
+require("lazy").setup(plugins, {
+	rocks = {
+		enabled = false,
+	},
+})
+
+--------------------------------------------------------------------------------
+-- PLOT PICKER
+require("plot_picker").setup({
+	root = "/home/jesper/mnt/su_maths/data/trainer/training_outputs",
+})
+vim.keymap.set("n", "<leader>pp", "<cmd>PlotPicker<cr>", { desc = "Plot Picker" })
+vim.keymap.set("n", "<leader>pr", "<cmd>PlotPickerReload<cr>", { desc = "Plot Picker Reload" })
+vim.keymap.set("n", "<leader>pn", "<cmd>PlotPickerNext<cr>", { desc = "Next Plot Picker Item" })
+vim.keymap.set("n", "<leader>pN", "<cmd>PlotPickerPrev<cr>", { desc = "Prev Plot Picker Item" })
 
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS

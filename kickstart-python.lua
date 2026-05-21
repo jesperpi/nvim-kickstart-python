@@ -336,6 +336,20 @@ local plugins = {
 			})
 		end,
 	},
+	{
+		"3rd/image.nvim",
+		opts = {
+			backend = "kitty",
+			processor = "magick_cli",
+			integrations = {
+				markdown = {
+					enabled = false,
+				},
+			},
+			max_width_window_percentage = 90,
+			max_height_window_percentage = 90,
+		},
+	},
 	-- AI Coding assistant
 	{
 		"olimorris/codecompanion.nvim",

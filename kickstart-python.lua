@@ -7,6 +7,13 @@ package.path = table.concat({
 
 vim.opt.number = true
 vim.opt.relativenumber = true
+vim.opt.wildmode = "longest:full,full"
+vim.opt.wildoptions = "pum,fuzzy"
+vim.opt.wildignorecase = true
+
+-- In command-line mode, typing `%%` expands to the current buffer's directory.
+-- This makes `:e %%<Tab>` complete files next to the file you are editing.
+vim.cmd([[cnoremap <expr> %% getcmdtype() == ":" ? expand("%:h") .. "/" : "%%"]])
 
 -- BOOTSTRAP the plugin manager `lazy.nvim` https://lazy.folke.io/installation
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -555,10 +562,7 @@ require("lazy").setup(plugins, {
 require("plot_picker").setup({
 	root = "/home/jesper/mnt/su_maths/data/trainer/training_outputs",
 })
-vim.keymap.set("n", "<leader>pp", "<cmd>PlotPicker<cr>", { desc = "Plot Picker" })
-vim.keymap.set("n", "<leader>pr", "<cmd>PlotPickerReload<cr>", { desc = "Plot Picker Reload" })
-vim.keymap.set("n", "<leader>pn", "<cmd>PlotPickerNext<cr>", { desc = "Next Plot Picker Item" })
-vim.keymap.set("n", "<leader>pN", "<cmd>PlotPickerPrev<cr>", { desc = "Prev Plot Picker Item" })
+vim.keymap.set("n", "<leader>pp", ":PlotPicker ", { desc = "Plot Picker" })
 
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS

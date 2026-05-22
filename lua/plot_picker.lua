@@ -1,32 +1,111 @@
 local M = {}
 
-M.config = {
-	root = "/home/jesper/mnt/su_maths/data/trainer/training_outputs",
-}
-
-local exts = {
-	png = true,
-	jpg = true,
-	jpeg = true,
-	webp = true,
-	gif = true,
-	bmp = true,
-	tif = true,
-	tiff = true,
+local modes = {
+	all = {
+		exts = nil,
+		find_args = {
+			"-not",
+			"-path",
+			"*/.git/*",
+			"-not",
+			"-path",
+			"*/node_modules/*",
+			"-not",
+			"-path",
+			"*/.venv/*",
+			"-not",
+			"-path",
+			"*/venv/*",
+			"-not",
+			"-path",
+			"*/__pycache__/*",
+			"-not",
+			"-path",
+			"*/.mypy_cache/*",
+			"-not",
+			"-path",
+			"*/.pytest_cache/*",
+			"-not",
+			"-path",
+			"*/.ruff_cache/*",
+			"-not",
+			"-path",
+			"*/dist/*",
+			"-not",
+			"-path",
+			"*/build/*",
+		},
+	},
+	image = {
+		exts = {
+			png = true,
+			jpg = true,
+			jpeg = true,
+			webp = true,
+			gif = true,
+			bmp = true,
+			tif = true,
+			tiff = true,
+		},
+		find_args = {
+			"-iname",
+			"*.png",
+			"-o",
+			"-iname",
+			"*.jpg",
+			"-o",
+			"-iname",
+			"*.jpeg",
+			"-o",
+			"-iname",
+			"*.webp",
+			"-o",
+			"-iname",
+			"*.gif",
+			"-o",
+			"-iname",
+			"*.bmp",
+			"-o",
+			"-iname",
+			"*.tif",
+			"-o",
+			"-iname",
+			"*.tiff",
+		},
+	},
+	python = {
+		exts = {
+			py = true,
+			pyi = true,
+			ipynb = true,
+		},
+		find_args = {
+			"-iname",
+			"*.py",
+			"-o",
+			"-iname",
+			"*.pyi",
+			"-o",
+			"-iname",
+			"*.ipynb",
+		},
+	},
 }
 
 M.cache = {
-	root = nil,
-	paths = {},
-	refreshing = false,
+	entries = {},
 }
 
 local function norm(path)
 	return path:gsub("//+", "/")
 end
 
-local function rel(path)
-	local root = norm(M.config.root)
+local function get_root()
+	return vim.fn.getcwd()
+end
+
+local function rel(path, root)
+	root = norm(root)
 	local with_sep = root .. "/"
 	if path:sub(1, #with_sep) == with_sep then
 		return path:sub(#with_sep + 1)
@@ -34,91 +113,78 @@ local function rel(path)
 	return path
 end
 
-local function is_image(name)
+local function has_ext(name, mode)
+	if modes[mode].exts == nil then
+		return true
+	end
 	local ext = name:match("%.([^%.]+)$")
-	return ext and exts[ext:lower()] or false
+	return ext and modes[mode].exts[ext:lower()] or false
 end
 
-local function reset_cache()
-	M.cache.root = nil
-	M.cache.paths = {}
-	M.cache.refreshing = false
+local function reset_cache(mode)
+	M.cache.entries[mode] = nil
 end
 
-local function refresh_cache_async()
-	local root = M.config.root
+local function cache_entry(mode, root)
+	local entry = M.cache.entries[mode]
+	if not entry or entry.root ~= root then
+		entry = {
+			root = root,
+			paths = {},
+			refreshing = false,
+		}
+		M.cache.entries[mode] = entry
+	end
+	return entry
+end
+
+local function refresh_cache_async(mode)
+	local root = get_root()
 	if root == "" then
 		return
 	end
-	if M.cache.refreshing and M.cache.root == root then
+	local entry = cache_entry(mode, root)
+	if entry.refreshing then
 		return
 	end
 
-	M.cache.refreshing = true
-	M.cache.root = root
+	entry.refreshing = true
 
-	vim.system({
-		"find",
-		root,
-		"-type",
-		"f",
-		"(",
-		"-iname",
-		"*.png",
-		"-o",
-		"-iname",
-		"*.jpg",
-		"-o",
-		"-iname",
-		"*.jpeg",
-		"-o",
-		"-iname",
-		"*.webp",
-		"-o",
-		"-iname",
-		"*.gif",
-		"-o",
-		"-iname",
-		"*.bmp",
-		"-o",
-		"-iname",
-		"*.tif",
-		"-o",
-		"-iname",
-		"*.tiff",
-		")",
-	}, { text = true }, function(result)
+	local args = { "find", "-L", root, "-type", "f", "(" }
+	vim.list_extend(args, modes[mode].find_args)
+	args[#args + 1] = ")"
+
+	vim.system(args, { text = true }, function(result)
 		vim.schedule(function()
-			if M.cache.root ~= root then
+			local next_entry = M.cache.entries[mode]
+			if not next_entry or next_entry.root ~= root then
 				return
 			end
 
-			M.cache.refreshing = false
+			next_entry.refreshing = false
 			if result.code ~= 0 then
 				return
 			end
 
 			local out = {}
 			for line in (result.stdout or ""):gmatch("[^\r\n]+") do
-				out[#out + 1] = rel(norm(line))
+				out[#out + 1] = rel(norm(line), root)
 			end
 			table.sort(out)
-			M.cache.paths = out
+			next_entry.paths = out
 		end)
 	end)
 end
 
-local function complete_images(arg_lead)
-	if M.cache.root ~= M.config.root then
-		reset_cache()
+local function complete_files(mode, arg_lead)
+	local root = get_root()
+	local entry = cache_entry(mode, root)
+	if not entry.refreshing and #entry.paths == 0 then
+		refresh_cache_async(mode)
 	end
-	if not M.cache.refreshing and #M.cache.paths == 0 then
-		refresh_cache_async()
-	end
-
 	local lead = arg_lead or ""
 	local matches = {}
-	for _, path in ipairs(M.cache.paths) do
+	for _, path in ipairs(entry.paths) do
 		if lead == "" or path:sub(1, #lead) == lead then
 			matches[#matches + 1] = path
 		end
@@ -126,76 +192,109 @@ local function complete_images(arg_lead)
 	return matches
 end
 
-local function open_relative_image(path)
+local function open_relative(mode, path)
 	local rel_path = vim.trim(path or "")
 	if rel_path == "" then
-		vim.notify("PlotPicker: provide a relative image path", vim.log.levels.WARN)
+		vim.notify(("FilePicker (%s): provide a relative path"):format(mode), vim.log.levels.WARN)
 		return
 	end
 
-	local full_path = norm(M.config.root .. "/" .. rel_path)
+	local full_path = norm(get_root() .. "/" .. rel_path)
 	if vim.fn.filereadable(full_path) ~= 1 then
-		vim.notify(("PlotPicker: not found: %s"):format(rel_path), vim.log.levels.ERROR)
+		vim.notify(("FilePicker (%s): not found: %s"):format(mode, rel_path), vim.log.levels.ERROR)
 		return
 	end
-	if not is_image(full_path) then
-		vim.notify(("PlotPicker: not an image: %s"):format(rel_path), vim.log.levels.ERROR)
+	if not has_ext(full_path, mode) then
+		vim.notify(("FilePicker (%s): unsupported extension: %s"):format(mode, rel_path), vim.log.levels.ERROR)
 		return
 	end
 
 	vim.cmd(("edit %s"):format(vim.fn.fnameescape(full_path)))
-	local bufnr = vim.api.nvim_get_current_buf()
-	vim.bo[bufnr].readonly = true
-	vim.bo[bufnr].modifiable = false
+	if mode == "image" then
+		local bufnr = vim.api.nvim_get_current_buf()
+		vim.bo[bufnr].readonly = true
+		vim.bo[bufnr].modifiable = false
+	end
 end
 
-local function set_root(path)
-	local next_root = vim.fn.fnamemodify(vim.trim(path or ""), ":p")
-	next_root = norm(next_root):gsub("/$", "")
-	if next_root == "" then
-		vim.notify("PlotPicker: root cannot be empty", vim.log.levels.ERROR)
-		return
-	end
-	if vim.fn.isdirectory(next_root) ~= 1 then
-		vim.notify(("PlotPicker: not a directory: %s"):format(next_root), vim.log.levels.ERROR)
-		return
-	end
-	M.config.root = next_root
-	reset_cache()
-	refresh_cache_async()
-	vim.notify(("PlotPicker root set: %s"):format(M.config.root), vim.log.levels.INFO)
+local function parse_picker_args(cmdopts)
+	local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+	local mode = args[1]
+	local rel_path = args[2]
+	return mode, rel_path
 end
 
-local function show_root()
-	vim.notify(("PlotPicker root: %s"):format(M.config.root), vim.log.levels.INFO)
+local function complete_picker(arg_lead, cmdline)
+	local command = cmdline:match("^%s*%S+") or ""
+	local rest = cmdline:sub(#command + 1)
+	local args = vim.split(vim.trim(rest), "%s+", { trimempty = true })
+	if #args == 0 then
+		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+	end
+	if #args == 1 and rest:sub(-1) ~= " " then
+		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+	end
+
+	local mode = args[1]
+	if not modes[mode] then
+		return {}
+	end
+	return complete_files(mode, arg_lead)
 end
 
-function M.setup(opts)
-	if opts then
-		M.config = vim.tbl_extend("force", M.config, opts)
+function M.setup()
+	for mode, _ in pairs(modes) do
+		refresh_cache_async(mode)
 	end
-	reset_cache()
-	refresh_cache_async()
 
-	vim.api.nvim_create_user_command("PlotPicker", function(cmdopts)
-		open_relative_image(cmdopts.args)
+	vim.api.nvim_create_user_command("FilePicker", function(cmdopts)
+		local mode, rel_path = parse_picker_args(cmdopts)
+		if not modes[mode] then
+			vim.notify("FilePicker: first argument must be image or python", vim.log.levels.ERROR)
+			return
+		end
+		open_relative(mode, rel_path)
 	end, {
-		nargs = 1,
-		complete = function(arg_lead)
-			return complete_images(arg_lead)
-		end,
+		nargs = "+",
+		complete = complete_picker,
 	})
 
-	vim.api.nvim_create_user_command("PlotPickerSetRoot", function(cmdopts)
-		set_root(cmdopts.args)
+	vim.api.nvim_create_user_command("FP", function(cmdopts)
+		local mode, rel_path = parse_picker_args(cmdopts)
+		if not modes[mode] then
+			vim.notify("FilePicker: first argument must be image or python", vim.log.levels.ERROR)
+			return
+		end
+		open_relative(mode, rel_path)
 	end, {
-		nargs = 1,
-		complete = "dir",
+		nargs = "+",
+		complete = complete_picker,
 	})
 
-	vim.api.nvim_create_user_command("PlotPickerRoot", function()
-		show_root()
-	end, {})
+	vim.api.nvim_create_user_command("F", function(cmdopts)
+		open_relative("all", cmdopts.args)
+	end, {
+		nargs = 1,
+		complete = function(arg_lead) return complete_files("all", arg_lead) end,
+	})
+
+	vim.api.nvim_create_user_command("Fp", function(cmdopts)
+		open_relative("python", cmdopts.args)
+	end, {
+		nargs = 1,
+		complete = function(arg_lead) return complete_files("python", arg_lead) end,
+	})
+
+	vim.api.nvim_create_user_command("Fi", function(cmdopts)
+		open_relative("image", cmdopts.args)
+	end, {
+		nargs = 1,
+		complete = function(arg_lead) return complete_files("image", arg_lead) end,
+	})
+
+	vim.cmd([[cnoreabbrev <expr> f ((getcmdtype() == ':' && getcmdline() ==# 'f') ? 'F' : 'f')]])
+	vim.cmd([[cnoreabbrev <expr> fp ((getcmdtype() == ':' && getcmdline() ==# 'fp') ? 'Fp' : 'fp')]])
+	vim.cmd([[cnoreabbrev <expr> fi ((getcmdtype() == ':' && getcmdline() ==# 'fi') ? 'Fi' : 'fi')]])
 end
 
 return M

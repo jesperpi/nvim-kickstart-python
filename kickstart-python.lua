@@ -559,10 +559,9 @@ require("lazy").setup(plugins, {
 
 --------------------------------------------------------------------------------
 -- PLOT PICKER
-require("plot_picker").setup({
-	root = "/home/jesper/mnt/su_maths/data/trainer/training_outputs",
-})
-vim.keymap.set("n", "<leader>pp", ":PlotPicker ", { desc = "Plot Picker" })
+require("plot_picker").setup()
+vim.keymap.set("n", "<leader>fii", ":FilePicker image ", { desc = "File Picker (Image)" })
+vim.keymap.set("n", "<leader>fpi", ":FilePicker python ", { desc = "File Picker (Python)" })
 
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS

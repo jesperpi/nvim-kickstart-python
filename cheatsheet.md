@@ -11,6 +11,11 @@ This is the quick-reference source for this config.
 - `<leader>` = `,`
 - `<localleader>` = `;`
 
+## Clipboard
+- `clipboard` option: `unnamedplus` (uses system clipboard register `+`)
+- `<leader>y` (normal/visual): yank to system clipboard
+- `<leader>Y` (normal): yank current line to system clipboard
+
 ## Config-Level Commands and Mappings
 - `<leader>settings`: edit `kickstart-python.lua`
 - `<leader>load`: run `:Lazy sync`

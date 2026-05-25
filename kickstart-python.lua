@@ -557,6 +557,11 @@ require("lazy").setup(plugins, {
 	},
 })
 
+-- yank to clipboard
+vim.opt.clipboard = "unnamedplus"
+vim.keymap.set({ "n", "x" }, "<leader>y", '"+y', { desc = "Yank to system clipboard" })
+vim.keymap.set("n", "<leader>Y", '"+Y', { desc = "Yank line to system clipboard" })
+
 --------------------------------------------------------------------------------
 -- PLOT PICKER
 require("plot_picker").setup()

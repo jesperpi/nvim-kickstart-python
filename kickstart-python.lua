@@ -171,8 +171,9 @@ local plugins = {
 		"akinsho/toggleterm.nvim",
 		version = "*",
 		cmd = "ToggleTerm",
-		keys = {
-			{ "<leader>tt", "<cmd>ToggleTerm<CR>", desc = "Toggle Terminal" },
+			keys = {
+			{ "<leader>tt", "<cmd>ToggleTerm<CR>", mode = "n", desc = "Toggle Terminal" },
+			{ "<leader>tt", [[<C-\><C-n><cmd>ToggleTerm<CR>]], mode = "t", desc = "Toggle Terminal" },
 		},
 		opts = {
 			direction = "float",

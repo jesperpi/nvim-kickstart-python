@@ -95,7 +95,10 @@ local plugins = {
 				-- disable ruff as hover provider to avoid conflicts with pyright
 				on_attach = function(client) client.server_capabilities.hoverProvider = false end,
 			}
-			-- setup taplo with completion capabilities
+
+			-- Explicitly enable configured LSP servers.
+			-- Without this, keymaps like `gd` work syntactically but no server attaches.
+			vim.lsp.enable({ "pyright", "ruff", "taplo" })
 		end,
 	},
 
@@ -268,6 +271,8 @@ local plugins = {
 		},
 		-- automatically open/close the DAP UI when starting/stopping the debugger
 		config = function()
+			require("dapui").setup()
+
 			local listener = require("dap").listeners
 			listener.after.event_initialized["dapui_config"] = function() require("dapui").open() end
 			listener.before.event_terminated["dapui_config"] = function() require("dapui").close() end
@@ -279,11 +284,13 @@ local plugins = {
 		"mfussenegger/nvim-dap-python",
 		dependencies = "mfussenegger/nvim-dap",
 		config = function()
-			require("dapui").setup()
-
-			-- Use Mason's debugpy venv python (stable path, avoids mason-registry API changes)
+			-- Use Mason's debugpy venv python, with a compatibility fallback.
 			local mason_path = vim.fn.stdpath("data") .. "/mason"
 			local debugpyPythonPath = mason_path .. "/packages/debugpy/venv/bin/python"
+			if vim.fn.executable(debugpyPythonPath) == 0 then
+				local alt = mason_path .. "/packages/debugpy/venv/bin/python3"
+				if vim.fn.executable(alt) == 1 then debugpyPythonPath = alt end
+			end
 
 			require("dap-python").setup(debugpyPythonPath, {}) ---@diagnostic disable-line: missing-fields
 		end,

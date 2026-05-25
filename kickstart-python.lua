@@ -190,10 +190,9 @@ local plugins = {
 		-- automatically update the parsers with every new release of treesitter
 		build = ":TSUpdate",
 
-		-- since treesitter's setup call is `require("nvim-treesitter.configs").setup`,
-		-- instead of `require("nvim-treesitter").setup` like other plugins do, we
-		-- need to tell lazy.nvim which module to via the `main` key
-		main = "nvim-treesitter.configs",
+		-- use the top-level module so lazy.nvim calls `require("nvim-treesitter").setup`.
+		-- newer nvim-treesitter releases moved internals from `configs` to `config`.
+		main = "nvim-treesitter",
 
 		opts = {
 			highlight = { enable = true }, -- enable treesitter syntax highlighting

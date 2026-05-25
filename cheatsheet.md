@@ -74,6 +74,7 @@ This is the quick-reference source for this config.
 
 ### Syntax / Theme
 - `nvim-treesitter`
+  - Plugin setup module: `nvim-treesitter` (not `nvim-treesitter.configs` in newer versions).
   - Highlight + indent enabled.
   - Parsers ensured: `python`, `toml`, `rst`, `ninja`, `yaml`, `markdown`, `markdown_inline`.
 - `tokyonight.nvim`

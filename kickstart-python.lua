@@ -338,6 +338,9 @@ local plugins = {
 		end,
 	},
 	{
+		"tpope/vim-fugitive",
+	},
+	{
 		"stevearc/overseer.nvim",
 		opts = {},
 		config = function()

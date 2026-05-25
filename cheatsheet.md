@@ -42,6 +42,7 @@ This is the quick-reference source for this config.
 - `lervag/vimtex`
 - `sindrets/diffview.nvim`
 - `nvim-lua/plenary.nvim`
+- `tpope/vim-fugitive`
 - `stevearc/overseer.nvim`
 - `olimorris/codecompanion.nvim`
 - `lewis6991/gitsigns.nvim`
@@ -121,6 +122,17 @@ This is the quick-reference source for this config.
     - `:DiffviewOpen`
     - `:DiffviewFileHistory`
     - `:DiffviewClose`
+- `vim-fugitive`
+  - Main command: `:Git ...` (runs Git from inside Neovim)
+  - Basic workflow:
+    - `:Git status`
+    - `:Git add %`
+    - `:Git commit`
+    - `:Git push`
+  - Rebase basics:
+    - `:Git rebase -i HEAD~3`
+    - `:Git rebase --continue`
+    - `:Git rebase --abort`
 - `overseer.nvim`
   - `:Make`: run `makeprg` as Overseer task (custom user command in this config)
   - Common Overseer commands:

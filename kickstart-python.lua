@@ -162,6 +162,25 @@ local plugins = {
 	},
 
 	-----------------------------------------------------------------------------
+	-- PERSISTENT TERMINAL
+	-- * use `<leader>tt` to toggle a persistent floating terminal
+	{
+		"akinsho/toggleterm.nvim",
+		version = "*",
+		cmd = "ToggleTerm",
+		keys = {
+			{ "<leader>tt", "<cmd>ToggleTerm<CR>", desc = "Toggle Terminal" },
+		},
+		opts = {
+			direction = "float",
+			persist_size = true,
+			start_in_insert = true,
+			insert_mappings = true,
+			terminal_mappings = true,
+		},
+	},
+
+	-----------------------------------------------------------------------------
 	-- SYNTAX HIGHLIGHTING & COLORSCHEME
 
 	-- treesitter for syntax highlighting
@@ -546,8 +565,7 @@ vim.keymap.set("n", "<leader>?", "<cmd>NvimTips<cr>", { desc = "CodeCompanion: N
 vim.keymap.set("n", "<leader>settings", ":e " .. KICKSTART_PROJECT_DIR .. "/kickstart-python.lua")
 vim.keymap.set("n", "<leader>load", ":Lazy sync")
 
-
-vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]])
+vim.keymap.set("t", "<Esc><Esc>", [[<C-\><C-n>]], { desc = "Exit terminal mode" })
 --------------------------------------------------------------------------------
 
 -- tell lazy.nvim to load and configure all the plugins

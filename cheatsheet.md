@@ -30,6 +30,7 @@ This is the quick-reference source for this config.
 - `neovim/nvim-lspconfig`
 - `saghen/blink.cmp`
 - `Vigemus/iron.nvim`
+- `akinsho/toggleterm.nvim`
 - `nvim-treesitter/nvim-treesitter`
 - `folke/tokyonight.nvim`
 - `mfussenegger/nvim-dap`
@@ -65,6 +66,11 @@ This is the quick-reference source for this config.
   - `<leader>I`: restart REPL
   - `+` (normal/visual): send motion/selection to REPL
   - `++`: send current line
+
+### Terminal
+- `toggleterm.nvim`
+  - `<leader>tt`: toggle persistent floating terminal
+  - `<Esc><Esc>` (terminal mode): exit terminal mode to normal mode
 
 ### Syntax / Theme
 - `nvim-treesitter`

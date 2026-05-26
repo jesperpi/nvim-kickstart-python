@@ -90,6 +90,10 @@ local modes = {
 			"*.ipynb",
 		},
 	},
+	fg = {
+		exts = nil,
+		find_args = nil,
+	},
 }
 
 M.cache = {
@@ -150,11 +154,7 @@ local function refresh_cache_async(mode)
 
 	entry.refreshing = true
 
-	local args = { "find", "-L", root, "-type", "f", "(" }
-	vim.list_extend(args, modes[mode].find_args)
-	args[#args + 1] = ")"
-
-	vim.system(args, { text = true }, function(result)
+	local run_complete = function(out)
 		vim.schedule(function()
 			local next_entry = M.cache.entries[mode]
 			if not next_entry or next_entry.root ~= root then
@@ -162,17 +162,61 @@ local function refresh_cache_async(mode)
 			end
 
 			next_entry.refreshing = false
-			if result.code ~= 0 then
-				return
-			end
 
-			local out = {}
-			for line in (result.stdout or ""):gmatch("[^\r\n]+") do
-				out[#out + 1] = rel(norm(line), root)
-			end
 			table.sort(out)
 			next_entry.paths = out
 		end)
+	end
+
+	if mode == "fg" then
+		vim.system({
+			"git",
+			"-C",
+			root,
+			"status",
+			"--porcelain=v1",
+			"--untracked-files=normal",
+			"--ignored=no",
+		}, { text = true }, function(result)
+			if result.code ~= 0 then
+				run_complete({})
+				return
+			end
+
+			local seen = {}
+			local out = {}
+			for line in (result.stdout or ""):gmatch("[^\r\n]+") do
+				local rel_path = line:sub(4)
+				local rename_to = rel_path:match(" %-%> (.+)$")
+				if rename_to then
+					rel_path = rename_to
+				end
+				local full_path = norm(root .. "/" .. rel_path)
+				if rel_path ~= "" and vim.fn.filereadable(full_path) == 1 and not seen[rel_path] then
+					seen[rel_path] = true
+					out[#out + 1] = rel_path
+				end
+			end
+			run_complete(out)
+		end)
+		return
+	end
+
+	local args = { "find", "-L", root, "-type", "f", "(" }
+	vim.list_extend(args, modes[mode].find_args)
+	args[#args + 1] = ")"
+
+	vim.system(args, { text = true }, function(result)
+		if result.code ~= 0 then
+			run_complete({})
+			return
+		end
+
+		local out = {}
+		for line in (result.stdout or ""):gmatch("[^\r\n]+") do
+			out[#out + 1] = rel(norm(line), root)
+		end
+		run_complete(out)
 	end)
 end
 
@@ -250,7 +294,7 @@ function M.setup()
 	vim.api.nvim_create_user_command("FilePicker", function(cmdopts)
 		local mode, rel_path = parse_picker_args(cmdopts)
 		if not modes[mode] then
-			vim.notify("FilePicker: first argument must be image or python", vim.log.levels.ERROR)
+			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
 			return
 		end
 		open_relative(mode, rel_path)
@@ -262,7 +306,7 @@ function M.setup()
 	vim.api.nvim_create_user_command("FP", function(cmdopts)
 		local mode, rel_path = parse_picker_args(cmdopts)
 		if not modes[mode] then
-			vim.notify("FilePicker: first argument must be image or python", vim.log.levels.ERROR)
+			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
 			return
 		end
 		open_relative(mode, rel_path)
@@ -292,9 +336,17 @@ function M.setup()
 		complete = function(arg_lead) return complete_files("image", arg_lead) end,
 	})
 
+	vim.api.nvim_create_user_command("Fg", function(cmdopts)
+		open_relative("fg", cmdopts.args)
+	end, {
+		nargs = 1,
+		complete = function(arg_lead) return complete_files("fg", arg_lead) end,
+	})
+
 	vim.cmd([[cnoreabbrev <expr> f ((getcmdtype() == ':' && getcmdline() ==# 'f') ? 'F' : 'f')]])
 	vim.cmd([[cnoreabbrev <expr> fp ((getcmdtype() == ':' && getcmdline() ==# 'fp') ? 'Fp' : 'fp')]])
 	vim.cmd([[cnoreabbrev <expr> fi ((getcmdtype() == ':' && getcmdline() ==# 'fi') ? 'Fi' : 'fi')]])
+	vim.cmd([[cnoreabbrev <expr> fg ((getcmdtype() == ':' && getcmdline() ==# 'fg') ? 'Fg' : 'fg')]])
 end
 
 return M

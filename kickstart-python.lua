@@ -640,6 +640,14 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+-- Auto-load local session file on startup if present in current working directory.
+vim.api.nvim_create_autocmd("VimEnter", {
+	callback = function()
+		local session_file = vim.fn.getcwd() .. "/.nvim_session.vim"
+		if vim.fn.filereadable(session_file) == 1 then vim.cmd("silent source " .. vim.fn.fnameescape(session_file)) end
+	end,
+})
+
 -- Run local config if it exists
 local local_config = vim.fn.getcwd() .. "/.nvim.lua"
 if vim.fn.filereadable(local_config) == 1 then dofile(local_config) end

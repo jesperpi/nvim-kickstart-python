@@ -1,40 +1,32 @@
 local M = {}
 
+local MAX_SCAN_DEPTH = 6
+local MAX_SCAN_FILES = 20000
+local MAX_SCAN_ENTRIES = 50000
+local MAX_SCAN_DIRS = 4000
+local SCAN_LIMIT_LABEL = ("depth %d, %d matches, %d entries, or %d directories"):format(
+	MAX_SCAN_DEPTH,
+	MAX_SCAN_FILES,
+	MAX_SCAN_ENTRIES,
+	MAX_SCAN_DIRS
+)
+
+local ignored_dirs = {
+	[".git"] = true,
+	[".mypy_cache"] = true,
+	[".pytest_cache"] = true,
+	[".ruff_cache"] = true,
+	[".venv"] = true,
+	["__pycache__"] = true,
+	build = true,
+	dist = true,
+	node_modules = true,
+	venv = true,
+}
+
 local modes = {
 	all = {
 		exts = nil,
-		find_args = {
-			"-not",
-			"-path",
-			"*/.git/*",
-			"-not",
-			"-path",
-			"*/node_modules/*",
-			"-not",
-			"-path",
-			"*/.venv/*",
-			"-not",
-			"-path",
-			"*/venv/*",
-			"-not",
-			"-path",
-			"*/__pycache__/*",
-			"-not",
-			"-path",
-			"*/.mypy_cache/*",
-			"-not",
-			"-path",
-			"*/.pytest_cache/*",
-			"-not",
-			"-path",
-			"*/.ruff_cache/*",
-			"-not",
-			"-path",
-			"*/dist/*",
-			"-not",
-			"-path",
-			"*/build/*",
-		},
 	},
 	image = {
 		exts = {
@@ -47,31 +39,6 @@ local modes = {
 			tif = true,
 			tiff = true,
 		},
-		find_args = {
-			"-iname",
-			"*.png",
-			"-o",
-			"-iname",
-			"*.jpg",
-			"-o",
-			"-iname",
-			"*.jpeg",
-			"-o",
-			"-iname",
-			"*.webp",
-			"-o",
-			"-iname",
-			"*.gif",
-			"-o",
-			"-iname",
-			"*.bmp",
-			"-o",
-			"-iname",
-			"*.tif",
-			"-o",
-			"-iname",
-			"*.tiff",
-		},
 	},
 	python = {
 		exts = {
@@ -79,54 +46,96 @@ local modes = {
 			pyi = true,
 			ipynb = true,
 		},
-		find_args = {
-			"-iname",
-			"*.py",
-			"-o",
-			"-iname",
-			"*.pyi",
-			"-o",
-			"-iname",
-			"*.ipynb",
-		},
 	},
 	fg = {
 		exts = nil,
-		find_args = nil,
 	},
 }
 
 M.cache = {
 	entries = {},
+	previous = {
+		root = nil,
+		mode = nil,
+		lead = nil,
+		paths = {},
+	},
 }
 
-local function norm(path)
-	return path:gsub("//+", "/")
-end
+local function norm(path) return path:gsub("//+", "/") end
 
-local function get_root()
-	return vim.fn.getcwd()
-end
+local function get_root() return vim.fn.getcwd() end
 
 local function rel(path, root)
 	root = norm(root)
 	local with_sep = root .. "/"
-	if path:sub(1, #with_sep) == with_sep then
-		return path:sub(#with_sep + 1)
-	end
+	if path:sub(1, #with_sep) == with_sep then return path:sub(#with_sep + 1) end
 	return path
 end
 
 local function has_ext(name, mode)
-	if modes[mode].exts == nil then
-		return true
-	end
+	if modes[mode].exts == nil then return true end
 	local ext = name:match("%.([^%.]+)$")
 	return ext and modes[mode].exts[ext:lower()] or false
 end
 
-local function reset_cache(mode)
-	M.cache.entries[mode] = nil
+local function reset_cache(mode) M.cache.entries[mode] = nil end
+
+local function is_ignored_dir(name) return ignored_dirs[name] or false end
+
+local function scan_files_breadth_first(root, mode)
+	local uv = vim.uv or vim.loop
+	local out = {}
+	local queue = {
+		{
+			path = root,
+			depth = 0,
+		},
+	}
+	local head = 1
+	local truncated = false
+	local scanned_entries = 0
+	local scanned_dirs = 1
+
+	while head <= #queue do
+		local current = queue[head]
+		head = head + 1
+
+		local scanner = uv.fs_scandir(current.path)
+		while scanner do
+			local name, typ = uv.fs_scandir_next(scanner)
+			if not name then break end
+			scanned_entries = scanned_entries + 1
+			if scanned_entries >= MAX_SCAN_ENTRIES then
+				truncated = true
+				return out, truncated
+			end
+
+			local child_depth = current.depth + 1
+			local child_path = norm(current.path .. "/" .. name)
+			if typ == "file" then
+				if child_depth <= MAX_SCAN_DEPTH and has_ext(name, mode) then
+					out[#out + 1] = rel(child_path, root)
+					if #out >= MAX_SCAN_FILES then
+						truncated = true
+						return out, truncated
+					end
+				end
+			elseif typ == "directory" and child_depth < MAX_SCAN_DEPTH and not is_ignored_dir(name) then
+				if scanned_dirs >= MAX_SCAN_DIRS then
+					truncated = true
+				else
+					scanned_dirs = scanned_dirs + 1
+					queue[#queue + 1] = {
+						path = child_path,
+						depth = child_depth,
+					}
+				end
+			end
+		end
+	end
+
+	return out, truncated
 end
 
 local function cache_entry(mode, root)
@@ -142,24 +151,35 @@ local function cache_entry(mode, root)
 	return entry
 end
 
+local function remember_previous(mode, root, lead, paths)
+	M.cache.previous = {
+		root = root,
+		mode = mode,
+		lead = lead,
+		paths = vim.deepcopy(paths),
+	}
+end
+
+local function remember_completion_filter(mode, root, lead, paths, total_count)
+	if lead == "" then return end
+	if #paths == 0 then return end
+	if total_count and #paths >= total_count then return end
+	if #paths == 1 and paths[1] == lead then return end
+	remember_previous(mode, root, lead, paths)
+end
+
 local function refresh_cache_async(mode)
 	local root = get_root()
-	if root == "" then
-		return
-	end
+	if root == "" then return end
 	local entry = cache_entry(mode, root)
-	if entry.refreshing then
-		return
-	end
+	if entry.refreshing then return end
 
 	entry.refreshing = true
 
 	local run_complete = function(out)
 		vim.schedule(function()
 			local next_entry = M.cache.entries[mode]
-			if not next_entry or next_entry.root ~= root then
-				return
-			end
+			if not next_entry or next_entry.root ~= root then return end
 
 			next_entry.refreshing = false
 
@@ -188,9 +208,7 @@ local function refresh_cache_async(mode)
 			for line in (result.stdout or ""):gmatch("[^\r\n]+") do
 				local rel_path = line:sub(4)
 				local rename_to = rel_path:match(" %-%> (.+)$")
-				if rename_to then
-					rel_path = rename_to
-				end
+				if rename_to then rel_path = rename_to end
 				local full_path = norm(root .. "/" .. rel_path)
 				if rel_path ~= "" and vim.fn.filereadable(full_path) == 1 and not seen[rel_path] then
 					seen[rel_path] = true
@@ -202,38 +220,90 @@ local function refresh_cache_async(mode)
 		return
 	end
 
-	local args = { "find", "-L", root, "-type", "f", "(" }
-	vim.list_extend(args, modes[mode].find_args)
-	args[#args + 1] = ")"
-
-	vim.system(args, { text = true }, function(result)
-		if result.code ~= 0 then
-			run_complete({})
-			return
-		end
-
-		local out = {}
-		for line in (result.stdout or ""):gmatch("[^\r\n]+") do
-			out[#out + 1] = rel(norm(line), root)
-		end
+	vim.schedule(function()
+		local out = scan_files_breadth_first(root, mode)
 		run_complete(out)
 	end)
 end
 
-local function complete_files(mode, arg_lead)
+local function refresh_cache_blocking(mode)
+	local root = get_root()
+	if root == "" then return end
+	local entry = cache_entry(mode, root)
+	entry.refreshing = false
+
+	local out = {}
+	if mode == "fg" then
+		local result = vim.system({
+			"git",
+			"-C",
+			root,
+			"status",
+			"--porcelain=v1",
+			"--untracked-files=normal",
+			"--ignored=no",
+		}, { text = true }):wait()
+		if result.code ~= 0 then
+			entry.paths = {}
+			return
+		end
+
+		local seen = {}
+		for line in (result.stdout or ""):gmatch("[^\r\n]+") do
+			local rel_path = line:sub(4)
+			local rename_to = rel_path:match(" %-%> (.+)$")
+			if rename_to then rel_path = rename_to end
+			local full_path = norm(root .. "/" .. rel_path)
+			if rel_path ~= "" and vim.fn.filereadable(full_path) == 1 and not seen[rel_path] then
+				seen[rel_path] = true
+				out[#out + 1] = rel_path
+			end
+		end
+	else
+		local truncated
+		out, truncated = scan_files_breadth_first(root, mode)
+		if truncated then
+			vim.notify(
+				("FilePicker (%s): stopped at scan limit: %s"):format(mode, SCAN_LIMIT_LABEL),
+				vim.log.levels.WARN
+			)
+		end
+	end
+
+	table.sort(out)
+	entry.paths = out
+end
+
+local function complete_files(mode, arg_lead, fresh)
 	local root = get_root()
 	local entry = cache_entry(mode, root)
-	if not entry.refreshing and #entry.paths == 0 then
-		refresh_cache_async(mode)
-	end
+	if fresh or #entry.paths == 0 then refresh_cache_blocking(mode) end
 	local lead = arg_lead or ""
 	local matches = {}
-	for _, path in ipairs(entry.paths) do
-		if lead == "" or path:sub(1, #lead) == lead then
+	if lead == "" then
+		matches = vim.deepcopy(entry.paths)
+	else
+		for _, path in ipairs(vim.fn.matchfuzzy(entry.paths, lead)) do
 			matches[#matches + 1] = path
 		end
 	end
+	remember_completion_filter(mode, root, lead, matches, #entry.paths)
 	return matches
+end
+
+local function remember_command_filter(mode, lead)
+	lead = vim.trim(lead or "")
+	if lead == "" then return end
+
+	local root = get_root()
+	local entry = cache_entry(mode, root)
+	if #entry.paths == 0 then refresh_cache_blocking(mode) end
+
+	local matches = {}
+	for _, path in ipairs(vim.fn.matchfuzzy(entry.paths, lead)) do
+		matches[#matches + 1] = path
+	end
+	remember_completion_filter(mode, root, lead, matches, #entry.paths)
 end
 
 local function open_relative(mode, path)
@@ -261,30 +331,99 @@ local function open_relative(mode, path)
 	end
 end
 
-local function parse_picker_args(cmdopts)
-	local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
-	local mode = args[1]
-	local rel_path = args[2]
-	return mode, rel_path
+local function select_cached_file(mode)
+	if not modes[mode] then
+		vim.notify("FilePicker: mode must be all, image, python, or fg", vim.log.levels.ERROR)
+		return
+	end
+
+	local root = get_root()
+	local entry = cache_entry(mode, root)
+	if #entry.paths == 0 then refresh_cache_blocking(mode) end
+
+	local paths = vim.deepcopy(entry.paths)
+	if #paths == 0 then
+		vim.notify(("FilePicker (%s): no cached files available"):format(mode), vim.log.levels.WARN)
+		return
+	end
+	vim.ui.select(paths, {
+		prompt = ("FilePicker (%s)"):format(mode),
+		format_item = function(path) return path end,
+	}, function(choice)
+		if choice then open_relative(mode, choice) end
+	end)
 end
 
-local function complete_picker(arg_lead, cmdline)
+local function select_previous_file()
+	local root = get_root()
+	local previous = M.cache.previous
+	if previous.root == root and previous.mode and #previous.paths > 0 then
+		local mode = previous.mode
+		local paths = vim.deepcopy(previous.paths)
+		vim.ui.select(paths, {
+			prompt = ("FilePicker previous (%s: %s)"):format(mode, previous.lead or ""),
+			format_item = function(path) return path end,
+		}, function(choice)
+			if choice then open_relative(mode, choice) end
+		end)
+		return
+	end
+
+	vim.notify("FilePicker: no previous tab-completion filter for this directory", vim.log.levels.WARN)
+end
+
+local function parse_picker_args(cmdopts)
+	local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+	local fresh = false
+	if args[1] == "-r" or args[1] == "--refresh" then
+		fresh = true
+		table.remove(args, 1)
+	end
+	local mode = args[1]
+	local rel_path = args[2]
+	return mode, rel_path, fresh
+end
+
+local function parse_cmdline_args(cmdline)
 	local command = cmdline:match("^%s*%S+") or ""
 	local rest = cmdline:sub(#command + 1)
 	local args = vim.split(vim.trim(rest), "%s+", { trimempty = true })
+	return args, rest
+end
+
+local function complete_picker(arg_lead, cmdline)
+	local args, rest = parse_cmdline_args(cmdline)
 	if #args == 0 then
 		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+	end
+	if #args == 1 and rest:sub(-1) ~= " " and ("-r"):sub(1, #arg_lead) == arg_lead then return { "-r" } end
+	if #args == 1 and rest:sub(-1) ~= " " and ("--refresh"):sub(1, #arg_lead) == arg_lead then
+		return { "--refresh" }
+	end
+	if #args > 0 and (args[1] == "-r" or args[1] == "--refresh") and #args == 1 and rest:sub(-1) == " " then
+		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+	end
+	if #args > 0 and (args[1] == "-r" or args[1] == "--refresh") and #args == 2 and rest:sub(-1) ~= " " then
+		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+	end
+
+	local fresh = false
+	if args[1] == "-r" or args[1] == "--refresh" then
+		fresh = true
+		table.remove(args, 1)
 	end
 	if #args == 1 and rest:sub(-1) ~= " " then
 		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
 	end
 
 	local mode = args[1]
-	if not modes[mode] then
-		return {}
-	end
-	return complete_files(mode, arg_lead)
+	if not modes[mode] then return {} end
+	return complete_files(mode, arg_lead, fresh)
 end
+
+function M.select(mode) select_cached_file(mode or "all") end
+
+function M.select_previous() select_previous_file() end
 
 function M.setup()
 	for mode, _ in pairs(modes) do
@@ -292,11 +431,13 @@ function M.setup()
 	end
 
 	vim.api.nvim_create_user_command("FilePicker", function(cmdopts)
-		local mode, rel_path = parse_picker_args(cmdopts)
+		local mode, rel_path, fresh = parse_picker_args(cmdopts)
 		if not modes[mode] then
 			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
 			return
 		end
+		if fresh then refresh_cache_blocking(mode) end
+		remember_command_filter(mode, rel_path)
 		open_relative(mode, rel_path)
 	end, {
 		nargs = "+",
@@ -304,43 +445,128 @@ function M.setup()
 	})
 
 	vim.api.nvim_create_user_command("FP", function(cmdopts)
-		local mode, rel_path = parse_picker_args(cmdopts)
+		local mode, rel_path, fresh = parse_picker_args(cmdopts)
 		if not modes[mode] then
 			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
 			return
 		end
+		if fresh then refresh_cache_blocking(mode) end
+		remember_command_filter(mode, rel_path)
 		open_relative(mode, rel_path)
 	end, {
 		nargs = "+",
 		complete = complete_picker,
 	})
 
-	vim.api.nvim_create_user_command("F", function(cmdopts)
-		open_relative("all", cmdopts.args)
+	vim.api.nvim_create_user_command("FilePickerSelect", function(cmdopts)
+		local mode = vim.trim(cmdopts.args or "")
+		if mode == "" then mode = "all" end
+		select_cached_file(mode)
 	end, {
-		nargs = 1,
-		complete = function(arg_lead) return complete_files("all", arg_lead) end,
+		nargs = "?",
+		complete = function(arg_lead)
+			return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
+		end,
+	})
+
+	vim.api.nvim_create_user_command("FilePickerPrevious", function() select_previous_file() end, {
+		nargs = 0,
+	})
+
+	vim.api.nvim_create_user_command("F", function(cmdopts)
+		local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+		local fresh = false
+		if args[1] == "-r" or args[1] == "--refresh" then
+			fresh = true
+			table.remove(args, 1)
+		end
+		if fresh then refresh_cache_blocking("all") end
+		remember_command_filter("all", args[1])
+		open_relative("all", args[1] or "")
+	end, {
+		nargs = "+",
+		complete = function(arg_lead, cmdline)
+			local args, rest = parse_cmdline_args(cmdline)
+			if #args == 1 and rest:sub(-1) ~= " " and ("-r"):sub(1, #arg_lead) == arg_lead then return { "-r" } end
+			if #args == 1 and rest:sub(-1) ~= " " and ("--refresh"):sub(1, #arg_lead) == arg_lead then
+				return { "--refresh" }
+			end
+			local fresh = false
+			if args[1] == "-r" or args[1] == "--refresh" then fresh = true end
+			return complete_files("all", arg_lead, fresh)
+		end,
 	})
 
 	vim.api.nvim_create_user_command("Fp", function(cmdopts)
-		open_relative("python", cmdopts.args)
+		local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+		local fresh = false
+		if args[1] == "-r" or args[1] == "--refresh" then
+			fresh = true
+			table.remove(args, 1)
+		end
+		if fresh then refresh_cache_blocking("python") end
+		remember_command_filter("python", args[1])
+		open_relative("python", args[1] or "")
 	end, {
-		nargs = 1,
-		complete = function(arg_lead) return complete_files("python", arg_lead) end,
+		nargs = "+",
+		complete = function(arg_lead, cmdline)
+			local args, rest = parse_cmdline_args(cmdline)
+			if #args == 1 and rest:sub(-1) ~= " " and ("-r"):sub(1, #arg_lead) == arg_lead then return { "-r" } end
+			if #args == 1 and rest:sub(-1) ~= " " and ("--refresh"):sub(1, #arg_lead) == arg_lead then
+				return { "--refresh" }
+			end
+			local fresh = false
+			if args[1] == "-r" or args[1] == "--refresh" then fresh = true end
+			return complete_files("python", arg_lead, fresh)
+		end,
 	})
 
 	vim.api.nvim_create_user_command("Fi", function(cmdopts)
-		open_relative("image", cmdopts.args)
+		local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+		local fresh = false
+		if args[1] == "-r" or args[1] == "--refresh" then
+			fresh = true
+			table.remove(args, 1)
+		end
+		if fresh then refresh_cache_blocking("image") end
+		remember_command_filter("image", args[1])
+		open_relative("image", args[1] or "")
 	end, {
-		nargs = 1,
-		complete = function(arg_lead) return complete_files("image", arg_lead) end,
+		nargs = "+",
+		complete = function(arg_lead, cmdline)
+			local args, rest = parse_cmdline_args(cmdline)
+			if #args == 1 and rest:sub(-1) ~= " " and ("-r"):sub(1, #arg_lead) == arg_lead then return { "-r" } end
+			if #args == 1 and rest:sub(-1) ~= " " and ("--refresh"):sub(1, #arg_lead) == arg_lead then
+				return { "--refresh" }
+			end
+			local fresh = false
+			if args[1] == "-r" or args[1] == "--refresh" then fresh = true end
+			return complete_files("image", arg_lead, fresh)
+		end,
 	})
 
 	vim.api.nvim_create_user_command("Fg", function(cmdopts)
-		open_relative("fg", cmdopts.args)
+		local args = vim.split(vim.trim(cmdopts.args or ""), "%s+", { trimempty = true })
+		local fresh = false
+		if args[1] == "-r" or args[1] == "--refresh" then
+			fresh = true
+			table.remove(args, 1)
+		end
+		if fresh then refresh_cache_blocking("fg") end
+		remember_command_filter("fg", args[1])
+		open_relative("fg", args[1] or "")
 	end, {
-		nargs = 1,
-		complete = function(arg_lead) return complete_files("fg", arg_lead) end,
+		nargs = "+",
+		complete = function(arg_lead, cmdline)
+			local args, rest = parse_cmdline_args(cmdline)
+			if #args == 1 and rest:sub(-1) ~= " " and ("-r"):sub(1, #arg_lead) == arg_lead then return { "-r" } end
+			if #args == 1 and rest:sub(-1) ~= " " and ("--refresh"):sub(1, #arg_lead) == arg_lead then
+				return { "--refresh" }
+			end
+			local fresh = false
+			if args[1] == "-r" or args[1] == "--refresh" then fresh = true end
+			return complete_files("fg", arg_lead, fresh)
+		end,
 	})
 
 	vim.cmd([[cnoreabbrev <expr> f ((getcmdtype() == ':' && getcmdline() ==# 'f') ? 'F' : 'f')]])

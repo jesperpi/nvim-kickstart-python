@@ -22,6 +22,16 @@ This is the quick-reference source for this config.
 - `<leader>?`: run `:NvimTips` (CodeCompanion prompt with this cheatsheet context)
 - `:NvimTips`: ask for Neovim tips using this file as context
 
+## File Picker
+- `<leader>f`: select from the most recent non-empty file picker tab-completion filter for the current directory.
+- `<leader>fii`: command-line image file picker.
+- `<leader>fpi`: command-line Python file picker.
+- `<leader>fgi`: command-line Git-changed file picker.
+- `:FilePickerPrevious`: select from the most recent non-empty file picker tab-completion filter.
+- `:FilePickerSelect [all|image|python|fg]`: select from a cached picker set.
+- `:F`, `:Fp`, `:Fi`, `:Fg`: open all, Python, image, or Git-changed files with command-line completion.
+- Non-git picker scans are breadth-first, skip common cache/build/vendor directories, and stop at depth 6, 20,000 matches, 50,000 filesystem entries, or 4,000 directories.
+
 ## Installed Plugins (Declared)
 - `folke/lazy.nvim` (bootstrapped plugin manager)
 - `WhoIsSethDaniel/mason-tool-installer.nvim`

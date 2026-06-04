@@ -28,8 +28,9 @@ This is the quick-reference source for this config.
 - `<leader>fpi`: command-line Python file picker.
 - `<leader>fgi`: command-line Git-changed file picker.
 - `:FilePickerPrevious`: select from the most recent non-empty file picker tab-completion filter.
-- `:FilePickerSelect [all|image|python|fg]`: select from a cached picker set.
+- `:FilePickerSelect [all|image|python|git]`: select from a cached picker set.
 - `:F`, `:Fp`, `:Fi`, `:Fg`: open all, Python, image, or Git-changed files with command-line completion.
+- `:f`, `:fp`, `:fi`, `:fg`: command-line shorthands for `:F`, `:Fp`, `:Fi`, and `:Fg`.
 - Non-git picker scans are breadth-first, skip common cache/build/vendor directories, and stop at depth 6, 20,000 matches, 50,000 filesystem entries, or 4,000 directories.
 
 ## Installed Plugins (Declared)

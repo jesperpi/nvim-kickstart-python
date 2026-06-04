@@ -591,17 +591,17 @@ vim.keymap.set({ "n", "x" }, "<leader>y", '"+y', { desc = "Yank to system clipbo
 vim.keymap.set("n", "<leader>Y", '"+Y', { desc = "Yank line to system clipboard" })
 
 --------------------------------------------------------------------------------
--- PLOT PICKER
-require("plot_picker").setup()
+-- FILE PICKER
+require("file_picker").setup()
 vim.keymap.set(
 	"n",
 	"<leader>f",
-	function() require("plot_picker").select_previous() end,
+	function() require("file_picker").select_previous() end,
 	{ desc = "File Picker (Select previous file set)" }
 )
 vim.keymap.set("n", "<leader>fii", ":FilePicker image ", { desc = "File Picker (Image)" })
 vim.keymap.set("n", "<leader>fpi", ":FilePicker python ", { desc = "File Picker (Python)" })
-vim.keymap.set("n", "<leader>fgi", ":FilePicker fg ", { desc = "File Picker (Git changed)" })
+vim.keymap.set("n", "<leader>fgi", ":FilePicker git ", { desc = "File Picker (Git changed)" })
 
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS

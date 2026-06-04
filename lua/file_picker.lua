@@ -4,6 +4,7 @@ local MAX_SCAN_DEPTH = 6
 local MAX_SCAN_FILES = 20000
 local MAX_SCAN_ENTRIES = 50000
 local MAX_SCAN_DIRS = 4000
+local NOTIFY_COOLDOWN_MS = 2000
 local SCAN_LIMIT_LABEL = ("depth %d, %d matches, %d entries, or %d directories"):format(
 	MAX_SCAN_DEPTH,
 	MAX_SCAN_FILES,
@@ -47,9 +48,13 @@ local modes = {
 			ipynb = true,
 		},
 	},
-	fg = {
+	git = {
 		exts = nil,
 	},
+}
+
+local mode_aliases = {
+	fg = "git",
 }
 
 M.cache = {
@@ -60,6 +65,7 @@ M.cache = {
 		lead = nil,
 		paths = {},
 	},
+	last_notify = {},
 }
 
 local function norm(path) return path:gsub("//+", "/") end
@@ -79,9 +85,55 @@ local function has_ext(name, mode)
 	return ext and modes[mode].exts[ext:lower()] or false
 end
 
+local function normalize_mode(mode) return mode_aliases[mode] or mode end
+
 local function reset_cache(mode) M.cache.entries[mode] = nil end
 
 local function is_ignored_dir(name) return ignored_dirs[name] or false end
+
+local function notify_once(key, message, level)
+	local now = vim.uv.now()
+	if M.cache.last_notify[key] and now - M.cache.last_notify[key] < NOTIFY_COOLDOWN_MS then return end
+	M.cache.last_notify[key] = now
+	vim.notify(message, level)
+end
+
+local function fd_binary()
+	if vim.fn.executable("fd") == 1 then return "fd" end
+	if vim.fn.executable("fdfind") == 1 then return "fdfind" end
+	return nil
+end
+
+local function fd_args(mode)
+	local args = {
+		fd_binary(),
+		"--type",
+		"f",
+		"--hidden",
+		"--color",
+		"never",
+		"--strip-cwd-prefix",
+		"--max-depth",
+		tostring(MAX_SCAN_DEPTH),
+		"--max-results",
+		tostring(MAX_SCAN_FILES),
+	}
+
+	for name, _ in pairs(ignored_dirs) do
+		args[#args + 1] = "--exclude"
+		args[#args + 1] = name
+	end
+
+	if modes[mode].exts then
+		for ext, _ in pairs(modes[mode].exts) do
+			args[#args + 1] = "--extension"
+			args[#args + 1] = ext
+		end
+	end
+
+	args[#args + 1] = "."
+	return args
+end
 
 local function scan_files_breadth_first(root, mode)
 	local uv = vim.uv or vim.loop
@@ -188,7 +240,7 @@ local function refresh_cache_async(mode)
 		end)
 	end
 
-	if mode == "fg" then
+	if mode == "git" then
 		vim.system({
 			"git",
 			"-C",
@@ -220,64 +272,48 @@ local function refresh_cache_async(mode)
 		return
 	end
 
-	vim.schedule(function()
-		local out = scan_files_breadth_first(root, mode)
-		run_complete(out)
-	end)
-end
-
-local function refresh_cache_blocking(mode)
-	local root = get_root()
-	if root == "" then return end
-	local entry = cache_entry(mode, root)
-	entry.refreshing = false
-
-	local out = {}
-	if mode == "fg" then
-		local result = vim.system({
-			"git",
-			"-C",
-			root,
-			"status",
-			"--porcelain=v1",
-			"--untracked-files=normal",
-			"--ignored=no",
-		}, { text = true }):wait()
-		if result.code ~= 0 then
-			entry.paths = {}
-			return
-		end
-
-		local seen = {}
-		for line in (result.stdout or ""):gmatch("[^\r\n]+") do
-			local rel_path = line:sub(4)
-			local rename_to = rel_path:match(" %-%> (.+)$")
-			if rename_to then rel_path = rename_to end
-			local full_path = norm(root .. "/" .. rel_path)
-			if rel_path ~= "" and vim.fn.filereadable(full_path) == 1 and not seen[rel_path] then
-				seen[rel_path] = true
-				out[#out + 1] = rel_path
+	if fd_binary() then
+		vim.system(fd_args(mode), { text = true, cwd = root }, function(result)
+			if result.code ~= 0 then
+				run_complete({})
+				return
 			end
-		end
-	else
-		local truncated
-		out, truncated = scan_files_breadth_first(root, mode)
+
+			local out = {}
+			for path in (result.stdout or ""):gmatch("[^\r\n]+") do
+				if path ~= "" then out[#out + 1] = norm(path) end
+			end
+			run_complete(out)
+		end)
+		return
+	end
+
+	vim.schedule(function()
+		local out, truncated = scan_files_breadth_first(root, mode)
 		if truncated then
-			vim.notify(
+			notify_once(
+				("scan-limit:%s:%s"):format(mode, root),
 				("FilePicker (%s): stopped at scan limit: %s"):format(mode, SCAN_LIMIT_LABEL),
 				vim.log.levels.WARN
 			)
 		end
-	end
-
-	table.sort(out)
-	entry.paths = out
+		run_complete(out)
+	end)
 end
 
 local function complete_files(mode, arg_lead, fresh)
 	local root = get_root()
 	local entry = cache_entry(mode, root)
-	if fresh or #entry.paths == 0 then refresh_cache_blocking(mode) end
+	if fresh then reset_cache(mode) end
+	if #entry.paths == 0 then
+		refresh_cache_async(mode)
+		notify_once(
+			("warming:%s:%s"):format(mode, root),
+			("FilePicker (%s): scanning in background; try completion again in a moment"):format(mode),
+			vim.log.levels.INFO
+		)
+		return {}
+	end
 	local lead = arg_lead or ""
 	local matches = {}
 	if lead == "" then
@@ -297,7 +333,10 @@ local function remember_command_filter(mode, lead)
 
 	local root = get_root()
 	local entry = cache_entry(mode, root)
-	if #entry.paths == 0 then refresh_cache_blocking(mode) end
+	if #entry.paths == 0 then
+		refresh_cache_async(mode)
+		return
+	end
 
 	local matches = {}
 	for _, path in ipairs(vim.fn.matchfuzzy(entry.paths, lead)) do
@@ -332,14 +371,23 @@ local function open_relative(mode, path)
 end
 
 local function select_cached_file(mode)
+	mode = normalize_mode(mode)
 	if not modes[mode] then
-		vim.notify("FilePicker: mode must be all, image, python, or fg", vim.log.levels.ERROR)
+		vim.notify("FilePicker: mode must be all, image, python, or git", vim.log.levels.ERROR)
 		return
 	end
 
 	local root = get_root()
 	local entry = cache_entry(mode, root)
-	if #entry.paths == 0 then refresh_cache_blocking(mode) end
+	if #entry.paths == 0 then
+		refresh_cache_async(mode)
+		notify_once(
+			("select-warming:%s:%s"):format(mode, root),
+			("FilePicker (%s): scanning in background; open the picker again in a moment"):format(mode),
+			vim.log.levels.INFO
+		)
+		return
+	end
 
 	local paths = vim.deepcopy(entry.paths)
 	if #paths == 0 then
@@ -381,7 +429,7 @@ local function parse_picker_args(cmdopts)
 	end
 	local mode = args[1]
 	local rel_path = args[2]
-	return mode, rel_path, fresh
+	return normalize_mode(mode), rel_path, fresh
 end
 
 local function parse_cmdline_args(cmdline)
@@ -416,7 +464,7 @@ local function complete_picker(arg_lead, cmdline)
 		return vim.tbl_filter(function(m) return m:sub(1, #arg_lead) == arg_lead end, vim.tbl_keys(modes))
 	end
 
-	local mode = args[1]
+	local mode = normalize_mode(args[1])
 	if not modes[mode] then return {} end
 	return complete_files(mode, arg_lead, fresh)
 end
@@ -426,17 +474,16 @@ function M.select(mode) select_cached_file(mode or "all") end
 function M.select_previous() select_previous_file() end
 
 function M.setup()
-	for mode, _ in pairs(modes) do
-		refresh_cache_async(mode)
-	end
-
 	vim.api.nvim_create_user_command("FilePicker", function(cmdopts)
 		local mode, rel_path, fresh = parse_picker_args(cmdopts)
 		if not modes[mode] then
-			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
+			vim.notify("FilePicker: first argument must be all, image, python, or git", vim.log.levels.ERROR)
 			return
 		end
-		if fresh then refresh_cache_blocking(mode) end
+		if fresh then
+			reset_cache(mode)
+			refresh_cache_async(mode)
+		end
 		remember_command_filter(mode, rel_path)
 		open_relative(mode, rel_path)
 	end, {
@@ -447,10 +494,13 @@ function M.setup()
 	vim.api.nvim_create_user_command("FP", function(cmdopts)
 		local mode, rel_path, fresh = parse_picker_args(cmdopts)
 		if not modes[mode] then
-			vim.notify("FilePicker: first argument must be all, image, python, or fg", vim.log.levels.ERROR)
+			vim.notify("FilePicker: first argument must be all, image, python, or git", vim.log.levels.ERROR)
 			return
 		end
-		if fresh then refresh_cache_blocking(mode) end
+		if fresh then
+			reset_cache(mode)
+			refresh_cache_async(mode)
+		end
 		remember_command_filter(mode, rel_path)
 		open_relative(mode, rel_path)
 	end, {
@@ -480,7 +530,10 @@ function M.setup()
 			fresh = true
 			table.remove(args, 1)
 		end
-		if fresh then refresh_cache_blocking("all") end
+		if fresh then
+			reset_cache("all")
+			refresh_cache_async("all")
+		end
 		remember_command_filter("all", args[1])
 		open_relative("all", args[1] or "")
 	end, {
@@ -504,7 +557,10 @@ function M.setup()
 			fresh = true
 			table.remove(args, 1)
 		end
-		if fresh then refresh_cache_blocking("python") end
+		if fresh then
+			reset_cache("python")
+			refresh_cache_async("python")
+		end
 		remember_command_filter("python", args[1])
 		open_relative("python", args[1] or "")
 	end, {
@@ -528,7 +584,10 @@ function M.setup()
 			fresh = true
 			table.remove(args, 1)
 		end
-		if fresh then refresh_cache_blocking("image") end
+		if fresh then
+			reset_cache("image")
+			refresh_cache_async("image")
+		end
 		remember_command_filter("image", args[1])
 		open_relative("image", args[1] or "")
 	end, {
@@ -552,9 +611,12 @@ function M.setup()
 			fresh = true
 			table.remove(args, 1)
 		end
-		if fresh then refresh_cache_blocking("fg") end
-		remember_command_filter("fg", args[1])
-		open_relative("fg", args[1] or "")
+		if fresh then
+			reset_cache("git")
+			refresh_cache_async("git")
+		end
+		remember_command_filter("git", args[1])
+		open_relative("git", args[1] or "")
 	end, {
 		nargs = "+",
 		complete = function(arg_lead, cmdline)
@@ -565,7 +627,7 @@ function M.setup()
 			end
 			local fresh = false
 			if args[1] == "-r" or args[1] == "--refresh" then fresh = true end
-			return complete_files("fg", arg_lead, fresh)
+			return complete_files("git", arg_lead, fresh)
 		end,
 	})
 

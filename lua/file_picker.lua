@@ -59,11 +59,11 @@ local mode_aliases = {
 
 M.cache = {
 	entries = {},
+	filters = {},
 	previous = {
 		root = nil,
 		mode = nil,
 		lead = nil,
-		paths = {},
 	},
 	last_notify = {},
 }
@@ -203,21 +203,25 @@ local function cache_entry(mode, root)
 	return entry
 end
 
-local function remember_previous(mode, root, lead, paths)
+local function filtered_paths(paths, lead)
+	lead = lead or ""
+	if lead == "" then return vim.deepcopy(paths) end
+	return vim.fn.matchfuzzy(paths, lead)
+end
+
+local function remember_completion_filter(mode, root, lead, paths)
+	paths = paths or {}
 	M.cache.previous = {
 		root = root,
 		mode = mode,
-		lead = lead,
+		lead = lead or "",
+	}
+	M.cache.filters[mode] = {
+		root = root,
+		lead = lead or "",
 		paths = vim.deepcopy(paths),
 	}
-end
-
-local function remember_completion_filter(mode, root, lead, paths, total_count)
-	if lead == "" then return end
-	if #paths == 0 then return end
-	if total_count and #paths >= total_count then return end
-	if #paths == 1 and paths[1] == lead then return end
-	remember_previous(mode, root, lead, paths)
+	vim.notify(("FilePicker: remember completion filter: mode %s, root %s, lead %s"):format(mode, root, lead), vim.log.levels.INFO)
 end
 
 local function refresh_cache_async(mode)
@@ -237,6 +241,8 @@ local function refresh_cache_async(mode)
 
 			table.sort(out)
 			next_entry.paths = out
+			local filter = M.cache.filters[mode]
+			if filter and filter.root == root then filter.paths = vim.deepcopy(out) end
 		end)
 	end
 
@@ -304,8 +310,12 @@ end
 local function complete_files(mode, arg_lead, fresh)
 	local root = get_root()
 	local entry = cache_entry(mode, root)
-	if fresh then reset_cache(mode) end
+	if fresh then
+		reset_cache(mode)
+		entry = cache_entry(mode, root)
+	end
 	if #entry.paths == 0 then
+		remember_completion_filter(mode, root, arg_lead or "", entry.paths)
 		refresh_cache_async(mode)
 		notify_once(
 			("warming:%s:%s"):format(mode, root),
@@ -315,15 +325,8 @@ local function complete_files(mode, arg_lead, fresh)
 		return {}
 	end
 	local lead = arg_lead or ""
-	local matches = {}
-	if lead == "" then
-		matches = vim.deepcopy(entry.paths)
-	else
-		for _, path in ipairs(vim.fn.matchfuzzy(entry.paths, lead)) do
-			matches[#matches + 1] = path
-		end
-	end
-	remember_completion_filter(mode, root, lead, matches, #entry.paths)
+	local matches = filtered_paths(entry.paths, lead)
+	remember_completion_filter(mode, root, lead, entry.paths)
 	return matches
 end
 
@@ -338,11 +341,7 @@ local function remember_command_filter(mode, lead)
 		return
 	end
 
-	local matches = {}
-	for _, path in ipairs(vim.fn.matchfuzzy(entry.paths, lead)) do
-		matches[#matches + 1] = path
-	end
-	remember_completion_filter(mode, root, lead, matches, #entry.paths)
+	remember_completion_filter(mode, root, lead, entry.paths)
 end
 
 local function open_relative(mode, path)
@@ -405,11 +404,29 @@ end
 local function select_previous_file()
 	local root = get_root()
 	local previous = M.cache.previous
-	if previous.root == root and previous.mode and #previous.paths > 0 then
+	local filter = previous.mode and M.cache.filters[previous.mode] or nil
+	if previous.root == root and filter and filter.root == root then
 		local mode = previous.mode
-		local paths = vim.deepcopy(previous.paths)
+		local lead = filter.lead or previous.lead or ""
+		if #filter.paths == 0 then
+			local entry = cache_entry(mode, root)
+			if #entry.paths == 0 then
+				refresh_cache_async(mode)
+				vim.notify(
+					("FilePicker previous (%s: %s): file list is still loading"):format(mode, lead),
+					vim.log.levels.INFO
+				)
+				return
+			end
+			filter.paths = vim.deepcopy(entry.paths)
+		end
+		local paths = filtered_paths(filter.paths, lead)
+		if #paths == 0 then
+			vim.notify(("FilePicker previous (%s: %s): no matches"):format(mode, lead), vim.log.levels.WARN)
+			return
+		end
 		vim.ui.select(paths, {
-			prompt = ("FilePicker previous (%s: %s)"):format(mode, previous.lead or ""),
+			prompt = ("FilePicker previous (%s: %s)"):format(mode, lead),
 			format_item = function(path) return path end,
 		}, function(choice)
 			if choice then open_relative(mode, choice) end

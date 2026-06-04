@@ -1,6 +1,6 @@
 local M = {}
 
-local MAX_SCAN_DEPTH = 6
+local MAX_SCAN_DEPTH = 12
 local MAX_SCAN_FILES = 20000
 local MAX_SCAN_ENTRIES = 50000
 local MAX_SCAN_DIRS = 4000

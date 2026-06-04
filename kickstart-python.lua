@@ -429,7 +429,7 @@ local plugins = {
 						return require("codecompanion.adapters").extend("openai", {
 							schema = {
 								model = {
-									default = "gpt-5.3-codex",
+									default = "gpt-5.5",
 								},
 							},
 						})
@@ -446,7 +446,7 @@ local plugins = {
 								defaults = {
 									auth_method = "chatgpt",
 									session_config_options = {
-										model = "gpt-5.3-codex",
+										model = "gpt-5.5",
 									},
 								},
 							})

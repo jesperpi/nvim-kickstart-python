@@ -111,6 +111,7 @@ local function fd_args(mode)
 		"f",
 		"--hidden",
 		"--follow",
+		"--no-ignore",
 		"--color",
 		"never",
 		"--strip-cwd-prefix",
@@ -231,7 +232,6 @@ local function remember_completion_filter(mode, root, lead, paths)
 		lead = lead or "",
 		paths = vim.deepcopy(paths),
 	}
-	vim.notify(("FilePicker: remember completion filter: mode %s, root %s, lead %s"):format(mode, root, lead), vim.log.levels.INFO)
 end
 
 local function refresh_cache_async(mode)

@@ -110,6 +110,7 @@ local function fd_args(mode)
 		"--type",
 		"f",
 		"--hidden",
+		"--follow",
 		"--color",
 		"never",
 		"--strip-cwd-prefix",
@@ -138,16 +139,25 @@ end
 local function scan_files_breadth_first(root, mode)
 	local uv = vim.uv or vim.loop
 	local out = {}
-	local queue = {
-		{
-			path = root,
-			depth = 0,
-		},
-	}
+	local queue = {}
 	local head = 1
 	local truncated = false
 	local scanned_entries = 0
-	local scanned_dirs = 1
+	local scanned_dirs = 0
+	local seen_dirs = {}
+
+	local function enqueue_dir(path, depth)
+		local real_path = uv.fs_realpath(path) or path
+		if seen_dirs[real_path] then return end
+		seen_dirs[real_path] = true
+		scanned_dirs = scanned_dirs + 1
+		queue[#queue + 1] = {
+			path = path,
+			depth = depth,
+		}
+	end
+
+	enqueue_dir(root, 0)
 
 	while head <= #queue do
 		local current = queue[head]
@@ -165,6 +175,10 @@ local function scan_files_breadth_first(root, mode)
 
 			local child_depth = current.depth + 1
 			local child_path = norm(current.path .. "/" .. name)
+			if typ == "link" then
+				local stat = uv.fs_stat(child_path)
+				typ = stat and stat.type or typ
+			end
 			if typ == "file" then
 				if child_depth <= MAX_SCAN_DEPTH and has_ext(name, mode) then
 					out[#out + 1] = rel(child_path, root)
@@ -177,11 +191,7 @@ local function scan_files_breadth_first(root, mode)
 				if scanned_dirs >= MAX_SCAN_DIRS then
 					truncated = true
 				else
-					scanned_dirs = scanned_dirs + 1
-					queue[#queue + 1] = {
-						path = child_path,
-						depth = child_depth,
-					}
+					enqueue_dir(child_path, child_depth)
 				end
 			end
 		end

@@ -111,11 +111,12 @@ This is the quick-reference source for this config.
 
 ### LaTeX
 - `vimtex` (loaded for `tex` filetype)
-  - Configured compiler: `latexmk`
-  - Configured viewer: `zathura`
+  - Configured compiler: `make4ht` through VimTeX's generic compiler
+  - HTML output directory: `build/`
   - Standard VimTeX mappings to remember:
-    - `\ll`: start/compile
-    - `\lv`: view PDF
+    - `\ll`: build output file
+    - `\lv`: view generated output file
+    - `\lh`: view generated file (html only)
     - `\lk`: stop compilation
     - `\lc`: clean aux files
 

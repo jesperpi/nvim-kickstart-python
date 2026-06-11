@@ -325,8 +325,10 @@ local plugins = {
 		"lervag/vimtex",
 		ft = "tex", -- load only for LaTeX files
 		config = function()
-			vim.g.vimtex_compiler_method = "latexmk"
-			vim.g.vimtex_view_method = "zathura" -- or your preferred PDF viewer
+			vim.g.vimtex_compiler_method = "generic"
+			vim.g.vimtex_compiler_generic = {
+				command = "mkdir -p build && cd build && make4ht -s -f html5 -d . @tex",
+			}
 		end,
 	},
 	{
@@ -603,6 +605,21 @@ vim.keymap.set("n", "<leader>fii", ":FilePicker image ", { desc = "File Picker (
 vim.keymap.set("n", "<leader>fpi", ":FilePicker python ", { desc = "File Picker (Python)" })
 vim.keymap.set("n", "<leader>fgi", ":FilePicker git ", { desc = "File Picker (Git changed)" })
 
+--------------------------------------------------------------------------------
+-- Tex for Html
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "tex",
+	callback = function()
+		vim.api.nvim_buf_create_user_command(0, "TexViewHtml", function()
+			local html = vim.fn.expand("%:p:h") .. "/build/" .. vim.fn.expand("%:t:r") .. ".html"
+			vim.fn.jobstart({ "xdg-open", html }, { detach = true })
+		end, {})
+		vim.keymap.set("n", "<localleader>lh", "<cmd>TexViewHtml<cr>", {
+			buffer = true,
+			desc = "View TeX HTML output",
+		})
+	end,
+})
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS
 

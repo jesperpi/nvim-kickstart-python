@@ -317,6 +317,12 @@ local function refresh_cache_async(mode)
 	end)
 end
 
+local function warm_cache_async()
+	for mode, _ in pairs(modes) do
+		refresh_cache_async(mode)
+	end
+end
+
 local function complete_files(mode, arg_lead, fresh)
 	local root = get_root()
 	local entry = cache_entry(mode, root)
@@ -501,6 +507,16 @@ function M.select(mode) select_cached_file(mode or "all") end
 function M.select_previous() select_previous_file() end
 
 function M.setup()
+	vim.schedule(warm_cache_async)
+
+	vim.api.nvim_create_autocmd("DirChanged", {
+		group = vim.api.nvim_create_augroup("FilePickerCache", { clear = true }),
+		callback = function()
+			if vim.v.event.scope ~= "tabpage" then return end
+			warm_cache_async()
+		end,
+	})
+
 	vim.api.nvim_create_user_command("FilePicker", function(cmdopts)
 		local mode, rel_path, fresh = parse_picker_args(cmdopts)
 		if not modes[mode] then

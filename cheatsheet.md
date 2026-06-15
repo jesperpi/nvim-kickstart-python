@@ -51,6 +51,8 @@ This is the quick-reference source for this config.
 - `danymat/neogen`
 - `chrisgrieser/nvim-puppeteer`
 - `lervag/vimtex`
+- `quarto-dev/quarto-nvim`
+- `jmbuhr/otter.nvim`
 - `sindrets/diffview.nvim`
 - `nvim-lua/plenary.nvim`
 - `tpope/vim-fugitive`
@@ -119,6 +121,22 @@ This is the quick-reference source for this config.
     - `\lh`: view generated file (html only)
     - `\lk`: stop compilation
     - `\lc`: clean aux files
+
+### Quarto
+- `quarto-nvim` (loaded for `quarto` filetype / `*.qmd`)
+  - Embedded Python support uses `otter.nvim` for LSP-style completion/diagnostics in code chunks.
+  - Code execution uses the existing `iron.nvim` REPL runner.
+  - HTML rendering command writes generated output under `out/` next to the `.qmd` file.
+  - `:QuartoRenderHtml`: render current `.qmd` to HTML in `out/`
+  - `:QuartoViewHtml`: open `out/<current-file>.html`
+  - `<localleader>qp`: preview current Quarto document
+  - `<localleader>rh`: render current Quarto document to HTML
+  - `<localleader>vh`: view rendered HTML output
+  - `<localleader>rc`: run current code cell
+  - `<localleader>ra`: run current cell and cells above
+  - `<localleader>rA`: run all cells matching the current cell language
+  - `<localleader>rl`: run current line
+  - Visual `<localleader>r`: run selected code
 
 ### Git / Diffs / Tasks
 - `gitsigns.nvim`

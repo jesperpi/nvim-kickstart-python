@@ -40,6 +40,8 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = ","
 vim.g.maplocalleader = ";"
 
+local typeset = require("typeset")
+
 local plugins = {
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
 
@@ -322,16 +324,6 @@ local plugins = {
 		dependencies = "nvim-treesitter/nvim-treesitter",
 	},
 	{
-		"lervag/vimtex",
-		ft = "tex", -- load only for LaTeX files
-		config = function()
-			vim.g.vimtex_compiler_method = "generic"
-			vim.g.vimtex_compiler_generic = {
-				command = "mkdir -p build && cd build && make4ht -s -f html5 -d . @tex",
-			}
-		end,
-	},
-	{
 		"sindrets/diffview.nvim",
 		dependencies = "nvim-lua/plenary.nvim",
 		config = function()
@@ -565,6 +557,7 @@ local plugins = {
 		end,
 	},
 }
+vim.list_extend(plugins, typeset.plugins())
 -- hotkey for asking about nvim stuff
 vim.api.nvim_create_user_command(
 	"NvimTips",
@@ -605,21 +598,7 @@ vim.keymap.set("n", "<leader>fii", ":FilePicker image ", { desc = "File Picker (
 vim.keymap.set("n", "<leader>fpi", ":FilePicker python ", { desc = "File Picker (Python)" })
 vim.keymap.set("n", "<leader>fgi", ":FilePicker git ", { desc = "File Picker (Git changed)" })
 
---------------------------------------------------------------------------------
--- Tex for Html
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = "tex",
-	callback = function()
-		vim.api.nvim_buf_create_user_command(0, "TexViewHtml", function()
-			local html = vim.fn.expand("%:p:h") .. "/build/" .. vim.fn.expand("%:t:r") .. ".html"
-			vim.fn.jobstart({ "xdg-open", html }, { detach = true })
-		end, {})
-		vim.keymap.set("n", "<localleader>lh", "<cmd>TexViewHtml<cr>", {
-			buffer = true,
-			desc = "View TeX HTML output",
-		})
-	end,
-})
+typeset.setup()
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS
 

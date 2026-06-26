@@ -19,8 +19,21 @@ This is the quick-reference source for this config.
 ## Config-Level Commands and Mappings
 - `<leader>settings`: edit `kickstart-python.lua`
 - `<leader>load`: run `:Lazy sync`
+- `<leader>h`: open this cheatsheet in a floating window
 - `<leader>?`: run `:NvimTips` (CodeCompanion prompt with this cheatsheet context)
+- `:Cheatsheet`: open this cheatsheet in a floating window
 - `:NvimTips`: ask for Neovim tips using this file as context
+
+## Project Picker
+- Requires the external `fzf` binary.
+- `<leader>ff`: find Git-tracked project files.
+- `<leader>fF`: find files under the current working directory.
+- `<leader>fs`: live grep project text.
+- `<leader>fb`: find open buffers.
+- `<leader>fr`: find recently opened files.
+- `<leader>fR`: resume the previous picker.
+- `<leader>fc`: find and run Vim commands.
+- `:FzfLua`: run any fzf-lua picker by name, e.g. `:FzfLua live_grep`.
 
 ## Installed Plugins (Declared)
 - `folke/lazy.nvim` (bootstrapped plugin manager)
@@ -29,6 +42,7 @@ This is the quick-reference source for this config.
 - `williamboman/mason-lspconfig.nvim`
 - `neovim/nvim-lspconfig`
 - `saghen/blink.cmp`
+- `ibhagwan/fzf-lua`
 - `Vigemus/iron.nvim`
 - `akinsho/toggleterm.nvim`
 - `nvim-treesitter/nvim-treesitter`

@@ -112,6 +112,51 @@ local plugins = {
 			keymap = { preset = "default" },
 		},
 	},
+
+	-- PROJECT PICKER
+	-- * quick fuzzy access to project files, buffers, recent files, grep, and commands
+	{
+		"ibhagwan/fzf-lua",
+		cmd = "FzfLua",
+		keys = {
+			{
+				"<leader>ff",
+				function() require("fzf-lua").git_files() end,
+				desc = "Find Git Files",
+			},
+			{
+				"<leader>fF",
+				function() require("fzf-lua").files() end,
+				desc = "Find Files",
+			},
+			{
+				"<leader>fs",
+				function() require("fzf-lua").live_grep() end,
+				desc = "Search Project",
+			},
+			{
+				"<leader>fb",
+				function() require("fzf-lua").buffers() end,
+				desc = "Find Buffers",
+			},
+			{
+				"<leader>fr",
+				function() require("fzf-lua").oldfiles() end,
+				desc = "Find Recent Files",
+			},
+			{
+				"<leader>fR",
+				function() require("fzf-lua").resume() end,
+				desc = "Resume Picker",
+			},
+			{
+				"<leader>fc",
+				function() require("fzf-lua").commands() end,
+				desc = "Find Commands",
+			},
+		},
+		opts = {},
+	},
 	-----------------------------------------------------------------------------
 	-- PYTHON REPL
 	-- A basic REPL that opens up as a horizontal split
@@ -558,13 +603,53 @@ local plugins = {
 	},
 }
 vim.list_extend(plugins, typeset.plugins())
+
+local function open_cheatsheet_float()
+	local path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md"
+	if vim.fn.filereadable(path) == 0 then
+		vim.notify("Cheatsheet not found: " .. path, vim.log.levels.ERROR)
+		return
+	end
+
+	local lines = vim.fn.readfile(path)
+	local width = math.min(100, math.max(60, math.floor(vim.o.columns * 0.8)))
+	local height = math.min(#lines, math.max(20, math.floor(vim.o.lines * 0.8)))
+	local row = math.floor((vim.o.lines - height) / 2)
+	local col = math.floor((vim.o.columns - width) / 2)
+
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].buftype = "nofile"
+	vim.bo[buf].bufhidden = "wipe"
+	vim.bo[buf].filetype = "markdown"
+	vim.bo[buf].modifiable = false
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		border = "rounded",
+		title = " Cheatsheet ",
+		title_pos = "center",
+	})
+	vim.wo[win].wrap = true
+	vim.wo[win].number = false
+	vim.wo[win].relativenumber = false
+	vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, silent = true, desc = "Close cheatsheet" })
+	vim.keymap.set("n", "<Esc>", "<cmd>close<cr>", { buffer = buf, silent = true, desc = "Close cheatsheet" })
+end
+
 -- hotkey for asking about nvim stuff
+vim.api.nvim_create_user_command("Cheatsheet", open_cheatsheet_float, { desc = "Open config cheatsheet" })
 vim.api.nvim_create_user_command(
 	"NvimTips",
 	function() require("codecompanion").prompt("nvimtips") end,
 	{ desc = "Ask CodeCompanion for Neovim tips with cheatsheet context" }
 )
 
+vim.keymap.set("n", "<leader>h", open_cheatsheet_float, { desc = "Open Cheatsheet" })
 vim.keymap.set("n", "<leader>?", "<cmd>NvimTips<cr>", { desc = "CodeCompanion: Neovim tips (cheatsheet)" })
 -- edit config
 vim.keymap.set("n", "<leader>settings", ":e " .. KICKSTART_PROJECT_DIR .. "/kickstart-python.lua")

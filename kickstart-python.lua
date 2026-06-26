@@ -712,10 +712,17 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("VimEnter", {
 	callback = function()
 		local session_file = vim.fn.getcwd() .. "/.nvim_session.vim"
-		if vim.fn.filereadable(session_file) == 1 then vim.cmd("silent source " .. vim.fn.fnameescape(session_file)) end
+		if vim.v.this_session == session_file then return end
+		if vim.fn.filereadable(session_file) == 1 then
+			local ok, err = pcall(vim.cmd, "silent source " .. vim.fn.fnameescape(session_file))
+			if not ok then vim.notify("Failed to source session: " .. err, vim.log.levels.WARN) end
+		end
 	end,
 })
 
 -- Run local config if it exists
 local local_config = vim.fn.getcwd() .. "/.nvim.lua"
-if vim.fn.filereadable(local_config) == 1 then dofile(local_config) end
+if vim.fn.filereadable(local_config) == 1 then
+	local ok, err = pcall(dofile, local_config)
+	if not ok then vim.notify("Failed to source local config: " .. err, vim.log.levels.WARN) end
+end

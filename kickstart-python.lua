@@ -110,6 +110,9 @@ local plugins = {
 		version = "v0.*", -- blink.cmp requires a release tag for its rust binary
 		opts = {
 			keymap = { preset = "default" },
+			-- Command-line completion has been freezing this config when entering `:`
+			-- in project sessions. Keep blink for insert-mode completion only.
+			cmdline = { enabled = false },
 		},
 	},
 

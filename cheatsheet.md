@@ -118,12 +118,12 @@ This is the quick-reference source for this config.
 - `vimtex` (loaded for `tex` filetype)
   - Configured compiler: `make4ht` through VimTeX's generic compiler
   - HTML output directory: `build/`
-  - Standard VimTeX mappings to remember:
-    - `\ll`: build output file
-    - `\lv`: view generated output file
-    - `\lh`: view generated file (html only)
-    - `\lk`: stop compilation
-    - `\lc`: clean aux files
+  - Local leader for LaTeX mappings is `;`.
+  - `;ll`: build HTML output with VimTeX / `make4ht`
+  - `;lh`: view generated HTML output
+  - `;lv`: build and view PDF output with `latexmk`
+  - `;lk`: stop compilation
+  - `;lc`: clean aux files
 
 ### Quarto
 - `quarto-nvim` (loaded for `quarto` filetype / `*.qmd`)

@@ -112,6 +112,51 @@ function M.setup()
 				buffer = true,
 				desc = "View TeX HTML output",
 			})
+			vim.keymap.set("n", "<localleader>lv", function()
+				if vim.fn.executable("latexmk") == 0 then
+					vim.notify("latexmk executable not found", vim.log.levels.ERROR)
+					return
+				end
+
+				local dir = vim.fn.expand("%:p:h")
+				local pdf = dir .. "/build/" .. vim.fn.expand("%:t:r") .. ".pdf"
+
+				vim.cmd.write()
+				vim.fn.mkdir(dir .. "/build", "p")
+				vim.system({
+					"latexmk",
+					"-pdf",
+					"-interaction=nonstopmode",
+					"-synctex=1",
+					"-outdir=build",
+					vim.fn.expand("%:p"),
+				}, {
+					cwd = dir,
+					text = true,
+				}, function(result)
+					vim.schedule(function()
+						if result.code == 0 then
+							vim.fn.jobstart({ "xdg-open", pdf }, { detach = true })
+							return
+						end
+
+						local message = result.stderr
+						if message == nil or message == "" then message = result.stdout end
+						if message == nil or message == "" then message = "PDF build failed" end
+
+						if vim.fn.filereadable(pdf) == 1 then
+							vim.notify(message, vim.log.levels.WARN)
+							vim.fn.jobstart({ "xdg-open", pdf }, { detach = true })
+							return
+						end
+
+						vim.notify(message, vim.log.levels.ERROR)
+					end)
+				end)
+			end, {
+				buffer = true,
+				desc = "Build and view TeX PDF",
+			})
 		end,
 	})
 

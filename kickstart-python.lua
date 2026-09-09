@@ -60,6 +60,7 @@ local plugins = {
 				"ruff", -- linter & formatter (includes flake8, pep8, black, isort, etc.)
 				"debugpy", -- debugger
 				"taplo", -- LSP for toml (e.g., for pyproject.toml files)
+				"jdtls", -- LSP for Java (requires Java 21 to run)
 			},
 		},
 	},
@@ -101,6 +102,66 @@ local plugins = {
 			-- Explicitly enable configured LSP servers.
 			-- Without this, keymaps like `gd` work syntactically but no server attaches.
 			vim.lsp.enable({ "pyright", "ruff", "taplo" })
+		end,
+	},
+
+	-- JAVA LSP
+	-- nvim-jdtls adds Java-specific commands and keeps one language-server
+	-- workspace per project. Debug and test bundles are intentionally omitted.
+	{
+		"mfussenegger/nvim-jdtls",
+		ft = "java",
+		dependencies = { "neovim/nvim-lspconfig" },
+		config = function()
+			local function start_java_lsp(bufnr)
+				local root_markers = {
+					"mvnw",
+					"gradlew",
+					"settings.gradle",
+					"settings.gradle.kts",
+					"pom.xml",
+					"build.gradle",
+					"build.gradle.kts",
+					"build.xml",
+					".git",
+				}
+				local root_dir = vim.fs.root(bufnr, root_markers)
+					or vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))
+				if not root_dir or root_dir == "" then return end
+
+				local workspace_dir = vim.fn.stdpath("cache")
+					.. "/jdtls/workspace/"
+					.. vim.fn.sha256(vim.fs.normalize(root_dir)):sub(1, 16)
+
+				local capabilities = vim.lsp.protocol.make_client_capabilities()
+				capabilities.general.positionEncodings = { "utf-16" }
+				capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+				require("jdtls").start_or_attach({
+					cmd = { "jdtls", "-data", workspace_dir },
+					root_dir = root_dir,
+					capabilities = capabilities,
+					settings = {
+						java = {
+							completion = { enabled = true },
+						},
+					},
+					on_attach = function(_, attached_bufnr)
+						vim.keymap.set("n", "<leader>co", function()
+							require("jdtls").organize_imports()
+						end, { buffer = attached_bufnr, desc = "Java: Organize Imports" })
+						vim.keymap.set("n", "<leader>ja", function()
+							require("codecompanion").prompt("javafix")
+						end, { buffer = attached_bufnr, desc = "Java: Fix Imports/Dependency" })
+					end,
+				})
+			end
+
+			start_java_lsp(vim.api.nvim_get_current_buf())
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = "java",
+				callback = function(args) start_java_lsp(args.buf) end,
+			})
 		end,
 	},
 
@@ -254,6 +315,7 @@ local plugins = {
 			ensure_installed = {
 				-- auto-install the Treesitter parser for python and related languages
 				"python",
+				"java",
 				"toml",
 				"rst",
 				"ninja",
@@ -524,6 +586,24 @@ local plugins = {
 					},
 				},
 				prompt_library = {
+					["Java Fix Imports & Dependency"] = {
+						interaction = "chat",
+						description = "Fix Java imports and add a missing Maven/Gradle dependency",
+						opts = {
+							alias = "javafix",
+							auto_submit = true,
+							is_slash_cmd = true,
+						},
+						prompts = {
+							{
+								role = "user",
+								content = function(context)
+									return [[Inspect the Java file at ]] .. context.filename .. [[ and its project.
+Fix unresolved types needed by the current change. Prefer imports from dependencies already on the classpath. If a dependency is genuinely missing, inspect the Maven or Gradle build files, BOMs, version catalogs, and existing conventions before choosing a coordinate and compatible version. Make the smallest necessary edits to the Java source and build file. Use the Maven or Gradle wrapper to compile the relevant module and fix only errors caused by these edits. Explain any ambiguous dependency choice and do not silently replace an existing library.]]
+								end,
+							},
+						},
+					},
 					["Neovim Tips (Cheatsheet)"] = {
 						interaction = "chat",
 						description = "Ask for Neovim tips with cheatsheet context",

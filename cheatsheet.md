@@ -41,6 +41,7 @@ This is the quick-reference source for this config.
 - `williamboman/mason.nvim`
 - `williamboman/mason-lspconfig.nvim`
 - `neovim/nvim-lspconfig`
+- `mfussenegger/nvim-jdtls`
 - `saghen/blink.cmp`
 - `ibhagwan/fzf-lua`
 - `Vigemus/iron.nvim`
@@ -67,12 +68,21 @@ This is the quick-reference source for this config.
 
 ### Mason / LSP / Completion
 - `mason-tool-installer.nvim`
-  - Ensures: `pyright`, `ruff`, `debugpy`, `taplo`.
+  - Ensures: `pyright`, `ruff`, `debugpy`, `taplo`, `jdtls`.
 - `nvim-lspconfig`
   - `gd`: goto definition
   - `gr`: goto references
   - `<leader>c`: code action
   - `<C-f>`: format file
+- `nvim-jdtls` (Java files)
+  - Requires Java 21 or newer to run the language server; projects may target older Java versions.
+  - Recognizes Maven, Gradle, Ant, wrapper, and Git project roots.
+  - Completion can insert imports for types already on the project classpath.
+  - `<leader>c`: choose an `Add import` quick fix for an unresolved type.
+  - `<leader>co`: organize, add, remove, and sort imports in the current Java file.
+  - `<leader>ja`: ask CodeCompanion to infer missing imports/dependencies, edit Maven or Gradle files, and compile with the project wrapper.
+  - `:JdtUpdateConfig`: reload the Java project after a build-file change if it is not detected automatically.
+  - Java debug and test bundles are intentionally not installed.
 - `blink.cmp` (`keymap.preset = "default"`)
   - Common defaults include completion accept/select/navigation keys from Blink's default preset.
   - If behavior differs, check current Blink docs for exact default mapping set.
@@ -93,7 +103,7 @@ This is the quick-reference source for this config.
 - `nvim-treesitter`
   - Plugin setup module: `nvim-treesitter` (not `nvim-treesitter.configs` in newer versions).
   - Highlight + indent enabled.
-  - Parsers ensured: `python`, `toml`, `rst`, `ninja`, `yaml`, `markdown`, `markdown_inline`.
+  - Parsers ensured: `python`, `java`, `toml`, `rst`, `ninja`, `yaml`, `markdown`, `markdown_inline`.
 - `tokyonight.nvim`
   - Auto-loaded as colorscheme.
 
@@ -179,6 +189,8 @@ This is the quick-reference source for this config.
   - `<C-a>`: `CodeCompanionActions`
   - `<localleader>a`: `CodeCompanionChat Toggle`
   - Visual `ga`: `CodeCompanionChat Add`
+  - `<leader>ja` (Java buffers): run the `javafix` prompt for imports and Maven/Gradle dependencies.
+  - `/javafix` (chat): run the same Java import/dependency workflow.
   - Command-line abbreviations:
     - `cc` -> `CodeCompanion`
     - `ccc` -> `CodeCompanionChat`

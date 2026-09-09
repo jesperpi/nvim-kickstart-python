@@ -662,6 +662,11 @@ Fix unresolved types needed by the current change. Prefer imports from dependenc
 				vim.cmd([[cab cl #{clipboard}]]),
 				vim.cmd([[cab ag @{agent}]]),
 				vim.cmd([[cab fi @{files}]]),
+				vim.cmd([[cnoreabbrev <expr> diff getcmdtype() ==# ':' && getcmdline() ==# 'diff' ? 'Git diff' : 'diff']]),
+				vim.cmd([[cnoreabbrev <expr> stat getcmdtype() ==# ':' && getcmdline() ==# 'stat' ? 'Git status' : 'stat']]),
+				vim.cmd([[cnoreabbrev <expr> com getcmdtype() ==# ':' && getcmdline() ==# 'com' ? 'Git commit' : 'com']]),
+				vim.cmd([[cnoreabbrev <expr> add getcmdtype() ==# ':' && getcmdline() ==# 'add' ? 'Git add' : 'add']]),
+				vim.cmd([[cnoreabbrev <expr> adda getcmdtype() ==# ':' && getcmdline() ==# 'adda' ? 'Git add -A' : 'adda']]),
 			})
 		end,
 	},

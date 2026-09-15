@@ -406,6 +406,20 @@ local plugins = {
 			require("dap-python").setup(debugpyPythonPath, {}) ---@diagnostic disable-line: missing-fields
 		end,
 	},
+
+	-- TESTING
+	-- Supports pytest and Java tests run through Maven or Gradle.
+	{
+		"vim-test/vim-test",
+		init = function()
+			vim.g["test#java#gradletest#executable"] = "./gradlew test"
+		end,
+		keys = {
+			{ "<leader>tn", "<cmd>TestNearest<CR>", desc = "Run Current Test" },
+			{ "<leader>tc", "<cmd>TestFile<CR>", desc = "Run Current Test Class" },
+			{ "<leader>ta", "<cmd>TestSuite<CR>", desc = "Run All Tests" },
+		},
+	},
 	-----------------------------------------------------------------------------
 	-- EDITING SUPPORT PLUGINS
 	-- some plugins that help with python-specific editing operations

@@ -89,6 +89,12 @@ This is the quick-reference source for this config.
 - `nvim-dap-python`
   - Uses Mason `debugpy` interpreter path.
 
+### Testing
+- `vim-test` (Python pytest and Java Maven/Gradle tests)
+  - `<leader>tn`: run the test under the cursor
+  - `<leader>tc`: run the current test class/file
+  - `<leader>ta`: run all tests
+
 ### Editing / Python Helpers
 - `neogen`
   - `<leader>a`: generate docstring

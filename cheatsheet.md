@@ -35,35 +35,6 @@ This is the quick-reference source for this config.
 - `<leader>fc`: find and run Vim commands.
 - `:FzfLua`: run any fzf-lua picker by name, e.g. `:FzfLua live_grep`.
 
-## Installed Plugins (Declared)
-- `folke/lazy.nvim` (bootstrapped plugin manager)
-- `WhoIsSethDaniel/mason-tool-installer.nvim`
-- `williamboman/mason.nvim`
-- `williamboman/mason-lspconfig.nvim`
-- `neovim/nvim-lspconfig`
-- `mfussenegger/nvim-jdtls`
-- `saghen/blink.cmp`
-- `ibhagwan/fzf-lua`
-- `Vigemus/iron.nvim`
-- `akinsho/toggleterm.nvim`
-- `nvim-treesitter/nvim-treesitter`
-- `folke/tokyonight.nvim`
-- `mfussenegger/nvim-dap`
-- `rcarriga/nvim-dap-ui`
-- `nvim-neotest/nvim-nio`
-- `mfussenegger/nvim-dap-python`
-- `danymat/neogen`
-- `chrisgrieser/nvim-puppeteer`
-- `lervag/vimtex`
-- `quarto-dev/quarto-nvim`
-- `jmbuhr/otter.nvim`
-- `sindrets/diffview.nvim`
-- `nvim-lua/plenary.nvim`
-- `tpope/vim-fugitive`
-- `stevearc/overseer.nvim`
-- `olimorris/codecompanion.nvim`
-- `lewis6991/gitsigns.nvim`
-
 ## Hotkeys and Commands by Plugin
 
 ### Mason / LSP / Completion

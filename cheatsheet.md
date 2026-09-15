@@ -189,8 +189,6 @@ This is the quick-reference source for this config.
   - `<C-a>`: `CodeCompanionActions`
   - `<localleader>a`: `CodeCompanionChat Toggle`
   - Visual `ga`: `CodeCompanionChat Add`
-  - `<leader>ja` (Java buffers): run the `javafix` prompt for imports and Maven/Gradle dependencies.
-  - `/javafix` (chat): run the same Java import/dependency workflow.
   - Command-line abbreviations:
     - `cc` -> `CodeCompanion`
     - `ccc` -> `CodeCompanionChat`

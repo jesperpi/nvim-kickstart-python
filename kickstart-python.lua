@@ -150,9 +150,6 @@ local plugins = {
 						vim.keymap.set("n", "<leader>co", function()
 							require("jdtls").organize_imports()
 						end, { buffer = attached_bufnr, desc = "Java: Organize Imports" })
-						vim.keymap.set("n", "<leader>ja", function()
-							require("codecompanion").prompt("javafix")
-						end, { buffer = attached_bufnr, desc = "Java: Fix Imports/Dependency" })
 					end,
 				})
 			end
@@ -586,24 +583,6 @@ local plugins = {
 					},
 				},
 				prompt_library = {
-					["Java Fix Imports & Dependency"] = {
-						interaction = "chat",
-						description = "Fix Java imports and add a missing Maven/Gradle dependency",
-						opts = {
-							alias = "javafix",
-							auto_submit = true,
-							is_slash_cmd = true,
-						},
-						prompts = {
-							{
-								role = "user",
-								content = function(context)
-									return [[Inspect the Java file at ]] .. context.filename .. [[ and its project.
-Fix unresolved types needed by the current change. Prefer imports from dependencies already on the classpath. If a dependency is genuinely missing, inspect the Maven or Gradle build files, BOMs, version catalogs, and existing conventions before choosing a coordinate and compatible version. Make the smallest necessary edits to the Java source and build file. Use the Maven or Gradle wrapper to compile the relevant module and fix only errors caused by these edits. Explain any ambiguous dependency choice and do not silently replace an existing library.]]
-								end,
-							},
-						},
-					},
 					["Neovim Tips (Cheatsheet)"] = {
 						interaction = "chat",
 						description = "Ask for Neovim tips with cheatsheet context",

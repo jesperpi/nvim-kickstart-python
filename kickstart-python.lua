@@ -75,6 +75,7 @@ local plugins = {
 			{ "gd", vim.lsp.buf.definition, desc = "Goto Definition" },
 			{ "gr", vim.lsp.buf.references, desc = "Goto References" },
 			{ "<leader>c", vim.lsp.buf.code_action, desc = "Code Action" },
+			{ "<leader>e", vim.diagnostic.open_float, desc = "Show Diagnostic" },
 			{ "<C-f>", vim.lsp.buf.format, desc = "Format File" },
 		},
 		init = function()

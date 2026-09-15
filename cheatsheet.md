@@ -73,6 +73,7 @@ This is the quick-reference source for this config.
   - `gd`: goto definition
   - `gr`: goto references
   - `<leader>c`: code action
+  - `<leader>e`: show the complete diagnostic under the cursor
   - `<C-f>`: format file
 - `nvim-jdtls` (Java files)
   - Requires Java 21 or newer to run the language server; projects may target older Java versions.
@@ -80,7 +81,6 @@ This is the quick-reference source for this config.
   - Completion can insert imports for types already on the project classpath.
   - `<leader>c`: choose an `Add import` quick fix for an unresolved type.
   - `<leader>co`: organize, add, remove, and sort imports in the current Java file.
-  - `<leader>ja`: ask CodeCompanion to infer missing imports/dependencies, edit Maven or Gradle files, and compile with the project wrapper.
   - `:JdtUpdateConfig`: reload the Java project after a build-file change if it is not detected automatically.
   - Java debug and test bundles are intentionally not installed.
 - `blink.cmp` (`keymap.preset = "default"`)

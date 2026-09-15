@@ -51,7 +51,7 @@ local plugins = {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = {
-			{ "williamboman/mason.nvim", opts = true },
+			{ "williamboman/mason.nvim", opts = { PATH = "append" } },
 			{ "williamboman/mason-lspconfig.nvim", opts = true },
 		},
 		opts = {
@@ -322,6 +322,14 @@ local plugins = {
 				"markdown_inline",
 			},
 		},
+		config = function(_, opts)
+			local treesitter = require("nvim-treesitter")
+			treesitter.setup(opts)
+
+			local cargo_bin = vim.fn.expand("~/.cargo/bin")
+			vim.env.PATH = cargo_bin .. ":" .. vim.env.PATH
+			treesitter.install(opts.ensure_installed)
+		end,
 	},
 
 	-- COLORSCHEME
@@ -410,15 +418,65 @@ local plugins = {
 	-- TESTING
 	-- Supports pytest and Java tests run through Maven or Gradle.
 	{
-		"vim-test/vim-test",
-		init = function()
-			vim.g["test#java#gradletest#executable"] = "./gradlew test"
-		end,
-		keys = {
-			{ "<leader>tn", "<cmd>TestNearest<CR>", desc = "Run Current Test" },
-			{ "<leader>tc", "<cmd>TestFile<CR>", desc = "Run Current Test Class" },
-			{ "<leader>ta", "<cmd>TestSuite<CR>", desc = "Run All Tests" },
+		"nvim-neotest/neotest",
+		dependencies = {
+			"nvim-neotest/nvim-nio",
+			"nvim-lua/plenary.nvim",
+			"nvim-neotest/neotest-python",
+			"rcasia/neotest-java",
 		},
+		keys = {
+			{
+				"<leader>tn",
+				function()
+					local neotest = require("neotest")
+					neotest.run.run()
+					neotest.summary.open()
+				end,
+				desc = "Run Current Test",
+			},
+			{
+				"<leader>tc",
+				function()
+					local neotest = require("neotest")
+					neotest.run.run(vim.fn.expand("%"))
+					neotest.summary.open()
+				end,
+				desc = "Run Current Test Class",
+			},
+			{
+				"<leader>ta",
+				function()
+					local neotest = require("neotest")
+					neotest.run.run({ suite = true })
+					neotest.summary.open()
+				end,
+				desc = "Run All Tests",
+			},
+			{
+				"<leader>ts",
+				function() require("neotest").summary.toggle() end,
+				desc = "Toggle Test Summary",
+			},
+		},
+		config = function()
+			require("neotest").setup({
+				adapters = {
+					require("neotest-python")({ runner = "pytest" }),
+					require("neotest-java")({}),
+				},
+				icons = {
+					passed = "P",
+					failed = "F",
+					running = "R",
+					skipped = "S",
+					unknown = "?",
+				},
+				summary = {
+					open = "topleft vsplit | vertical resize 40",
+				},
+			})
+		end,
 	},
 	-----------------------------------------------------------------------------
 	-- EDITING SUPPORT PLUGINS

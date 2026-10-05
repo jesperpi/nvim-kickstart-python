@@ -1,5 +1,5 @@
--- Mac profile: Java work machine. No Python tooling, no LaTeX/Quarto, and no
--- image.nvim (iTerm2 does not speak the kitty graphics protocol).
+-- Mac profile: Java work machine. No Python tooling and no LaTeX/Quarto.
+-- image.nvim needs the kitty terminal (iTerm2 does not speak the kitty graphics protocol).
 return {
 	python = false,
 	java = {
@@ -8,7 +8,7 @@ return {
 		lombok = true,
 	},
 	typeset = false,
-	image = false,
+	image = true,
 	mason = {
 		"lemminx", -- LSP for XML (pom.xml, Maven settings)
 	},

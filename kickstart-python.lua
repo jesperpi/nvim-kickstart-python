@@ -162,16 +162,12 @@ local plugins = {
 			end
 
 			local function start_java_lsp(bufnr)
+				-- the repository root comes first, so a multi-module project gets one jdtls for all its
+				-- modules instead of one per module's pom.xml; neotest-java talks to the first jdtls only,
+				-- which fails for files outside that server's module
 				local root_markers = {
-					"mvnw",
-					"gradlew",
-					"settings.gradle",
-					"settings.gradle.kts",
-					"pom.xml",
-					"build.gradle",
-					"build.gradle.kts",
-					"build.xml",
-					".git",
+					{ ".git", "mvnw", "gradlew", "settings.gradle", "settings.gradle.kts" },
+					{ "pom.xml", "build.gradle", "build.gradle.kts", "build.xml" },
 				}
 				local root_dir = vim.fs.root(bufnr, root_markers)
 					or vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))

@@ -5,6 +5,9 @@ package.path = table.concat({
 	package.path,
 }, ";")
 
+-- per-machine switches, see `lua/profile.lua` and `lua/profiles/`
+local profile = require("profile")
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.wildmode = "longest:full,full"
@@ -42,6 +45,30 @@ vim.g.maplocalleader = ";"
 
 local typeset = require("typeset")
 
+-- Mason tools, treesitter parsers, and LSP servers depend on the profile
+local mason_tools = { "taplo" } -- LSP for toml (e.g., for pyproject.toml files)
+local treesitter_parsers = { "toml", "yaml", "markdown", "markdown_inline" }
+local lsp_servers = { "taplo" }
+if profile.python then
+	vim.list_extend(mason_tools, {
+		"pyright", -- LSP for python
+		"ruff", -- linter & formatter (includes flake8, pep8, black, isort, etc.)
+		"debugpy", -- debugger
+	})
+	vim.list_extend(treesitter_parsers, { "python", "rst", "ninja" })
+	vim.list_extend(lsp_servers, { "pyright", "ruff" })
+end
+if profile.java.enabled then
+	table.insert(mason_tools, "jdtls") -- LSP for Java (requires Java 21 to run)
+	if profile.java.debug then
+		vim.list_extend(mason_tools, { "java-debug-adapter", "java-test" })
+	end
+	table.insert(treesitter_parsers, "java")
+end
+vim.list_extend(mason_tools, profile.mason)
+vim.list_extend(treesitter_parsers, profile.treesitter)
+vim.list_extend(lsp_servers, profile.lsp)
+
 local plugins = {
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
 
@@ -55,13 +82,7 @@ local plugins = {
 			{ "williamboman/mason-lspconfig.nvim", opts = true },
 		},
 		opts = {
-			ensure_installed = {
-				"pyright", -- LSP for python
-				"ruff", -- linter & formatter (includes flake8, pep8, black, isort, etc.)
-				"debugpy", -- debugger
-				"taplo", -- LSP for toml (e.g., for pyproject.toml files)
-				"jdtls", -- LSP for Java (requires Java 21 to run)
-			},
+			ensure_installed = mason_tools,
 		},
 	},
 
@@ -92,6 +113,9 @@ local plugins = {
 			vim.lsp.config["taplo"] = {
 				capabilities = lspCapabilities,
 			}
+			vim.lsp.config["lemminx"] = {
+				capabilities = lspCapabilities,
+			}
 			-- ruff uses an LSP proxy, therefore it needs to be enabled as if it
 			-- were a LSP. In practice, ruff only provides linter-like diagnostics
 			-- and some code actions, and is not a full LSP yet.
@@ -102,18 +126,40 @@ local plugins = {
 
 			-- Explicitly enable configured LSP servers.
 			-- Without this, keymaps like `gd` work syntactically but no server attaches.
-			vim.lsp.enable({ "pyright", "ruff", "taplo" })
+			vim.lsp.enable(lsp_servers)
 		end,
 	},
 
 	-- JAVA LSP
 	-- nvim-jdtls adds Java-specific commands and keeps one language-server
-	-- workspace per project. Debug and test bundles are intentionally omitted.
+	-- workspace per project. The profile decides whether the debug and test
+	-- bundles and the lombok agent are used.
 	{
 		"mfussenegger/nvim-jdtls",
+		enabled = profile.java.enabled,
 		ft = "java",
 		dependencies = { "neovim/nvim-lspconfig" },
 		config = function()
+			local mason_packages = vim.fn.stdpath("data") .. "/mason/packages"
+
+			-- jars that nvim-jdtls loads into jdtls for debugging and running tests
+			local function debug_bundles()
+				if not profile.java.debug then return {} end
+				local bundles = vim.fn.glob(
+					mason_packages .. "/java-debug-adapter/extension/server/com.microsoft.java.debug.plugin-*.jar",
+					true,
+					true
+				)
+				for _, jar in ipairs(vim.fn.glob(mason_packages .. "/java-test/extension/server/*.jar", true, true)) do
+					local name = vim.fs.basename(jar)
+					-- these two are not OSGi bundles and break jdtls when loaded
+					if name ~= "com.microsoft.java.test.runner-jar-with-dependencies.jar" and name ~= "jacocoagent.jar" then
+						table.insert(bundles, jar)
+					end
+				end
+				return bundles
+			end
+
 			local function start_java_lsp(bufnr)
 				local root_markers = {
 					"mvnw",
@@ -138,19 +184,47 @@ local plugins = {
 				capabilities.general.positionEncodings = { "utf-16" }
 				capabilities.textDocument.completion.completionItem.snippetSupport = true
 
-				require("jdtls").start_or_attach({
-					cmd = { "jdtls", "-data", workspace_dir },
+				local cmd = { "jdtls" }
+				local lombok = mason_packages .. "/jdtls/lombok.jar"
+				if profile.java.lombok and vim.uv.fs_stat(lombok) then
+					table.insert(cmd, "--jvm-arg=-javaagent:" .. lombok)
+				end
+				vim.list_extend(cmd, { "-data", workspace_dir })
+
+				local jdtls = require("jdtls")
+				jdtls.start_or_attach({
+					cmd = cmd,
 					root_dir = root_dir,
 					capabilities = capabilities,
+					-- with the debug bundle loaded, nvim-jdtls registers nvim-dap
+					-- configurations for each main class (`:JdtUpdateDebugConfig` refreshes)
+					dap = { hotcodereplace = "auto" },
+					init_options = {
+						bundles = debug_bundles(),
+						extendedClientCapabilities = jdtls.extendedClientCapabilities,
+					},
 					settings = {
 						java = {
 							completion = { enabled = true },
+							signatureHelp = { enabled = true },
+							configuration = { updateBuildConfiguration = "interactive" },
+							maven = { downloadSources = true },
 						},
 					},
 					on_attach = function(_, attached_bufnr)
-						vim.keymap.set("n", "<leader>co", function()
-							require("jdtls").organize_imports()
-						end, { buffer = attached_bufnr, desc = "Java: Organize Imports" })
+						local function map(mode, lhs, rhs, desc)
+							vim.keymap.set(mode, lhs, rhs, { buffer = attached_bufnr, desc = "Java: " .. desc })
+						end
+						map("n", "<leader>co", jdtls.organize_imports, "Organize Imports")
+						map({ "n", "x" }, "<leader>jv", jdtls.extract_variable, "Extract Variable")
+						map({ "n", "x" }, "<leader>jc", jdtls.extract_constant, "Extract Constant")
+						map("x", "<leader>jm", function() jdtls.extract_method(true) end, "Extract Method")
+						map("n", "<leader>ju", "<cmd>JdtUpdateConfig<cr>", "Reload Project Config")
+
+						if profile.java.debug then
+							map("n", "<leader>jt", jdtls.test_nearest_method, "Debug Test Method")
+							map("n", "<leader>jT", jdtls.test_class, "Debug Test Class")
+						end
 					end,
 				})
 			end
@@ -229,6 +303,7 @@ local plugins = {
 	-- following line to the REPL, like we would do with other vim operators.
 	{
 		"Vigemus/iron.nvim",
+		enabled = profile.python,
 		keys = {
 			{ "<leader>i", vim.cmd.IronRepl, desc = "󱠤 Toggle REPL" },
 			{ "<leader>I", vim.cmd.IronRestart, desc = "󱠤 Restart REPL" },
@@ -310,17 +385,8 @@ local plugins = {
 		opts = {
 			highlight = { enable = true }, -- enable treesitter syntax highlighting
 			indent = { enable = true }, -- better indentation behavior
-			ensure_installed = {
-				-- auto-install the Treesitter parser for python and related languages
-				"python",
-				"java",
-				"toml",
-				"rst",
-				"ninja",
-				"yaml",
-				"markdown",
-				"markdown_inline",
-			},
+			-- auto-install the Treesitter parsers for the profile's languages
+			ensure_installed = treesitter_parsers,
 		},
 		config = function(_, opts)
 			local treesitter = require("nvim-treesitter")
@@ -329,6 +395,17 @@ local plugins = {
 			local cargo_bin = vim.fn.expand("~/.cargo/bin")
 			vim.env.PATH = cargo_bin .. ":" .. vim.env.PATH
 			treesitter.install(opts.ensure_installed)
+
+			-- the `main` branch of nvim-treesitter no longer enables highlighting
+			-- itself, so start it for every filetype that has an installed parser
+			local filetypes = {}
+			for _, lang in ipairs(opts.ensure_installed) do
+				vim.list_extend(filetypes, vim.treesitter.language.get_filetypes(lang))
+			end
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = filetypes,
+				callback = function(args) pcall(vim.treesitter.start, args.buf) end,
+			})
 		end,
 	},
 
@@ -401,6 +478,7 @@ local plugins = {
 
 	{
 		"mfussenegger/nvim-dap-python",
+		enabled = profile.python,
 		dependencies = "mfussenegger/nvim-dap",
 		config = function()
 			-- Use Mason's debugpy venv python, with a compatibility fallback.
@@ -416,14 +494,14 @@ local plugins = {
 	},
 
 	-- TESTING
-	-- Supports pytest and Java tests run through Maven or Gradle.
+	-- Supports pytest and Java tests run through Maven or Gradle, per profile.
 	{
 		"nvim-neotest/neotest",
 		dependencies = {
 			"nvim-neotest/nvim-nio",
 			"nvim-lua/plenary.nvim",
-			"nvim-neotest/neotest-python",
-			"rcasia/neotest-java",
+			{ "nvim-neotest/neotest-python", enabled = profile.python },
+			{ "rcasia/neotest-java", enabled = profile.java.enabled },
 		},
 		keys = {
 			{
@@ -460,11 +538,11 @@ local plugins = {
 			},
 		},
 		config = function()
+			local adapters = {}
+			if profile.python then table.insert(adapters, require("neotest-python")({ runner = "pytest" })) end
+			if profile.java.enabled then table.insert(adapters, require("neotest-java")({})) end
 			require("neotest").setup({
-				adapters = {
-					require("neotest-python")({ runner = "pytest" }),
-					require("neotest-java")({}),
-				},
+				adapters = adapters,
 				icons = {
 					passed = "P",
 					failed = "F",
@@ -501,6 +579,7 @@ local plugins = {
 	-- * also auto-converts f-strings back to regular strings when removing `{}`
 	{
 		"chrisgrieser/nvim-puppeteer",
+		enabled = profile.python,
 		dependencies = "nvim-treesitter/nvim-treesitter",
 	},
 	{
@@ -548,6 +627,7 @@ local plugins = {
 	},
 	{
 		"3rd/image.nvim",
+		enabled = profile.image,
 		opts = {
 			backend = "kitty",
 			processor = "magick_cli",
@@ -742,7 +822,8 @@ local plugins = {
 		end,
 	},
 }
-vim.list_extend(plugins, typeset.plugins())
+if profile.typeset then vim.list_extend(plugins, typeset.plugins()) end
+vim.list_extend(plugins, profile.plugins)
 
 local function open_cheatsheet_float()
 	local path = _G.KICKSTART_PROJECT_DIR .. "/cheatsheet.md"
@@ -810,7 +891,7 @@ vim.opt.clipboard = "unnamedplus"
 vim.keymap.set({ "n", "x" }, "<leader>y", '"+y', { desc = "Yank to system clipboard" })
 vim.keymap.set("n", "<leader>Y", '"+Y', { desc = "Yank line to system clipboard" })
 
-typeset.setup()
+if profile.typeset then typeset.setup() end
 --------------------------------------------------------------------------------
 -- SETUP BASIC PYTHON-RELATED OPTIONS
 
@@ -820,33 +901,35 @@ typeset.setup()
 -- just that buffer. (As an alternative to using an autocmd, you can also put those
 -- configurations into a file `/after/ftplugin/{filetype}.lua` in your
 -- nvim-directory.)
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = "python", -- filetype for which to run the autocmd
-	callback = function()
-		-- use pep8 standards
-		vim.opt_local.expandtab = true
-		vim.opt_local.shiftwidth = 4
-		vim.opt_local.tabstop = 4
-		vim.opt_local.softtabstop = 4
+if profile.python then
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = "python", -- filetype for which to run the autocmd
+		callback = function()
+			-- use pep8 standards
+			vim.opt_local.expandtab = true
+			vim.opt_local.shiftwidth = 4
+			vim.opt_local.tabstop = 4
+			vim.opt_local.softtabstop = 4
 
-		-- folds based on indentation https://neovim.io/doc/user/fold.html#fold-indent
-		-- if you are a heavy user of folds, consider using `nvim-ufo`
-		vim.opt_local.foldmethod = "indent"
+			-- folds based on indentation https://neovim.io/doc/user/fold.html#fold-indent
+			-- if you are a heavy user of folds, consider using `nvim-ufo`
+			vim.opt_local.foldmethod = "indent"
 
-		local iabbrev = function(lhs, rhs) vim.keymap.set("ia", lhs, rhs, { buffer = true }) end
-		-- automatically capitalize boolean values. Useful if you come from a
-		-- different language, and lowercase them out of habit.
-		iabbrev("true", "True")
-		iabbrev("false", "False")
+			local iabbrev = function(lhs, rhs) vim.keymap.set("ia", lhs, rhs, { buffer = true }) end
+			-- automatically capitalize boolean values. Useful if you come from a
+			-- different language, and lowercase them out of habit.
+			iabbrev("true", "True")
+			iabbrev("false", "False")
 
-		-- we can also fix other habits we might have from other languages
-		iabbrev("--", "#")
-		iabbrev("null", "None")
-		iabbrev("none", "None")
-		iabbrev("nil", "None")
-		iabbrev("function", "def")
-	end,
-})
+			-- we can also fix other habits we might have from other languages
+			iabbrev("--", "#")
+			iabbrev("null", "None")
+			iabbrev("none", "None")
+			iabbrev("nil", "None")
+			iabbrev("function", "def")
+		end,
+	})
+end
 
 -- Auto-load local session file on startup if present in current working directory.
 vim.api.nvim_create_autocmd("VimEnter", {
@@ -859,6 +942,9 @@ vim.api.nvim_create_autocmd("VimEnter", {
 		end
 	end,
 })
+
+-- profile-specific setup, see `lua/profiles/`
+profile.setup()
 
 -- Run local config if it exists
 local local_config = vim.fn.getcwd() .. "/.nvim.lua"

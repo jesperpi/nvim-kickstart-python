@@ -10,6 +10,11 @@ This is the quick-reference source for this config.
 ## General Mappings
 - `<leader>` = `,`
 - `<localleader>` = `;`
+- `%%` (command line): expands to the current file's directory, e.g. `:e %%<Tab>`
+
+## Startup
+- `.nvim_session.vim` in the working directory is sourced automatically on startup.
+- `.nvim.lua` in the working directory is run as local config on startup.
 
 ## Clipboard
 - `clipboard` option: `unnamedplus` (uses system clipboard register `+`)
@@ -17,8 +22,8 @@ This is the quick-reference source for this config.
 - `<leader>Y` (normal): yank current line to system clipboard
 
 ## Config-Level Commands and Mappings
-- `<leader>settings`: edit `kickstart-python.lua`
-- `<leader>load`: run `:Lazy sync`
+- `<leader>settings`: type `:e .../kickstart-python.lua` on the command line (press Enter to open)
+- `<leader>load`: type `:Lazy sync` on the command line (press Enter to run)
 - `<leader>h`: open this cheatsheet in a floating window
 - `<leader>?`: run `:NvimTips` (CodeCompanion prompt with this cheatsheet context)
 - `:Cheatsheet`: open this cheatsheet in a floating window
@@ -39,7 +44,7 @@ This is the quick-reference source for this config.
 
 ### Mason / LSP / Completion
 - `mason-tool-installer.nvim`
-  - Ensures: `pyright`, `ruff`, `debugpy`, `taplo`, `jdtls`.
+  - Ensures: `pyright`, `ruff`, `debugpy`, `taplo`, `lemminx` (XML, e.g. `pom.xml`), `jdtls`, `java-debug-adapter`, `java-test`.
 - `nvim-lspconfig`
   - `gd`: goto definition
   - `gr`: goto references
@@ -51,9 +56,15 @@ This is the quick-reference source for this config.
   - Recognizes Maven, Gradle, Ant, wrapper, and Git project roots.
   - Completion can insert imports for types already on the project classpath.
   - `<leader>c`: choose an `Add import` quick fix for an unresolved type.
+  - Runs with the Lombok agent, so Lombok-generated methods resolve.
+  - Maven dependency sources are downloaded for goto definition.
+  - Asks before reloading the project when a build file changes.
   - `<leader>co`: organize, add, remove, and sort imports in the current Java file.
-  - `:JdtUpdateConfig`: reload the Java project after a build-file change if it is not detected automatically.
-  - Java debug and test bundles are intentionally not installed.
+  - `<leader>jv` (normal/visual): extract variable
+  - `<leader>jc` (normal/visual): extract constant
+  - `<leader>jm` (visual): extract method
+  - `<leader>ju`: reload the project config (`:JdtUpdateConfig`)
+  - `:JdtUpdateDebugConfig`: refresh the debug launch configurations for main classes.
 - `blink.cmp` (`keymap.preset = "default"`)
   - Common defaults include completion accept/select/navigation keys from Blink's default preset.
   - If behavior differs, check current Blink docs for exact default mapping set.
@@ -73,8 +84,9 @@ This is the quick-reference source for this config.
 ### Syntax / Theme
 - `nvim-treesitter`
   - Plugin setup module: `nvim-treesitter` (not `nvim-treesitter.configs` in newer versions).
-  - Highlight + indent enabled.
-  - Parsers ensured: `python`, `java`, `toml`, `rst`, `ninja`, `yaml`, `markdown`, `markdown_inline`.
+  - Highlighting is started for every filetype with an installed parser. Treesitter indent is not enabled.
+  - Parsers ensured: `python`, `java`, `toml`, `rst`, `ninja`, `yaml`, `xml`, `properties`, `sql`, `json`, `markdown`, `markdown_inline`.
+  - Installing parsers requires the `tree-sitter` CLI and a C compiler.
 - `tokyonight.nvim`
   - Auto-loaded as colorscheme.
 
@@ -88,18 +100,32 @@ This is the quick-reference source for this config.
   - UI auto-opens on start and closes on terminate/exit.
 - `nvim-dap-python`
   - Uses Mason `debugpy` interpreter path.
+- Java (through `nvim-jdtls`)
+  - `<leader>dc` in a Java project offers a launch configuration for each main class.
+  - Hot code replace is applied automatically on save during a debug session.
+  - `<leader>jt`: debug the test method under the cursor
+  - `<leader>jT`: debug the current test class
 
 ### Testing
-- `vim-test` (Python pytest and Java Maven/Gradle tests)
+- `neotest` (`neotest-python` with pytest, `neotest-java` with Maven/Gradle)
   - `<leader>tn`: run the test under the cursor
   - `<leader>tc`: run the current test class/file
   - `<leader>ta`: run all tests
+  - `<leader>ts`: toggle the test summary
+  - The summary opens on the left after each run.
+  - `:NeotestJava setup`: download the JUnit runner that `neotest-java` needs (once).
 
 ### Editing / Python Helpers
 - `neogen`
   - `<leader>a`: generate docstring
 - `nvim-puppeteer`
   - Auto f-string conversion behavior in Python strings.
+- Python buffers
+  - 4-space indent, indent-based folds.
+  - Insert-mode abbreviations: `true` -> `True`, `false` -> `False`, `null`/`none`/`nil` -> `None`, `--` -> `#`, `function` -> `def`.
+
+### Java Helpers
+- Java buffers use a 4-space indent unless the project's `.editorconfig` sets otherwise.
 
 ### LaTeX
 - `vimtex` (loaded for `tex` filetype)
@@ -153,6 +179,12 @@ This is the quick-reference source for this config.
     - `:Git rebase -i HEAD~3`
     - `:Git rebase --continue`
     - `:Git rebase --abort`
+  - Command-line abbreviations:
+    - `diff` -> `Git diff`
+    - `stat` -> `Git status`
+    - `com` -> `Git commit`
+    - `add` -> `Git add`
+    - `adda` -> `Git add -A`
 - `overseer.nvim`
   - `:Make`: run `makeprg` as Overseer task (custom user command in this config)
   - Common Overseer commands:
@@ -166,6 +198,7 @@ This is the quick-reference source for this config.
   - `<C-a>`: `CodeCompanionActions`
   - `<localleader>a`: `CodeCompanionChat Toggle`
   - Visual `ga`: `CodeCompanionChat Add`
+  - `<localleader>r`: open the rules picker in the current or a new chat
   - Command-line abbreviations:
     - `cc` -> `CodeCompanion`
     - `ccc` -> `CodeCompanionChat`

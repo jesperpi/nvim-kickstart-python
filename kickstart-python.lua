@@ -79,7 +79,8 @@ local plugins = {
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = {
 			{ "williamboman/mason.nvim", opts = { PATH = "append" } },
-			{ "williamboman/mason-lspconfig.nvim", opts = true },
+			-- nvim-jdtls starts jdtls itself, so mason-lspconfig must not start a second one
+			{ "williamboman/mason-lspconfig.nvim", opts = { automatic_enable = { exclude = { "jdtls" } } } },
 		},
 		opts = {
 			ensure_installed = mason_tools,

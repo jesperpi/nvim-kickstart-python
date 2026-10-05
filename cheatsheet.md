@@ -54,6 +54,7 @@ This is the quick-reference source for this config.
 - `nvim-jdtls` (Java files)
   - Requires Java 21 or newer to run the language server; projects may target older Java versions.
   - Recognizes Maven, Gradle, Ant, wrapper, and Git project roots.
+  - Started by nvim-jdtls only; `mason-lspconfig` is told not to start jdtls a second time.
   - Completion can insert imports for types already on the project classpath.
   - `<leader>c`: choose an `Add import` quick fix for an unresolved type.
   - Runs with the Lombok agent, so Lombok-generated methods resolve.

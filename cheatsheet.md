@@ -96,8 +96,10 @@ This is the quick-reference source for this config.
   - `<leader>dc`: continue/start debugger
   - `<leader>db`: toggle breakpoint
   - `<leader>dt`: terminate debugger
+  - `<leader>dn` / `<leader>di` / `<leader>do`: step over / into / out
 - `nvim-dap-ui`
   - `<leader>du`: toggle DAP UI
+  - `<leader>de` (normal/visual): evaluate the expression under the cursor or the selection
   - UI auto-opens on start and closes on terminate/exit.
 - `nvim-dap-python`
   - Uses Mason `debugpy` interpreter path.

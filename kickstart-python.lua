@@ -432,6 +432,7 @@ local plugins = {
 	-- * start the debugger with `<leader>dc`
 	-- * add breakpoints with `<leader>db`
 	-- * terminate the debugger `<leader>dt`
+	-- * step over / into / out with `<leader>dn` / `<leader>di` / `<leader>do`
 	{
 		"mfussenegger/nvim-dap",
 		keys = {
@@ -450,20 +451,54 @@ local plugins = {
 				function() require("dap").terminate() end,
 				desc = "Terminate Debugger",
 			},
+			{
+				"<leader>dn",
+				function() require("dap").step_over() end,
+				desc = "Step Over",
+			},
+			{
+				"<leader>di",
+				function() require("dap").step_into() end,
+				desc = "Step Into",
+			},
+			{
+				"<leader>do",
+				function() require("dap").step_out() end,
+				desc = "Step Out",
+			},
 		},
 	},
 
 	-- UI for the debugger
 	-- * the debugger UI is also automatically opened when starting/stopping the debugger
 	-- * toggle debugger UI manually with `<leader>du`
+	-- * evaluate the expression under the cursor (or the selection) with `<leader>de`
 	{
 		"rcarriga/nvim-dap-ui",
 		dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+		-- load together with nvim-dap (by a key or by nvim-jdtls), so the listeners below
+		-- exist before the first debug session; `keys` alone would wait for `<leader>du`
+		init = function()
+			vim.api.nvim_create_autocmd("User", {
+				pattern = "LazyLoad",
+				callback = function(event)
+					if event.data ~= "nvim-dap" then return end
+					require("lazy").load({ plugins = { "nvim-dap-ui" } })
+					return true -- remove this autocmd
+				end,
+			})
+		end,
 		keys = {
 			{
 				"<leader>du",
 				function() require("dapui").toggle() end,
 				desc = "Toggle Debugger UI",
+			},
+			{
+				"<leader>de",
+				function() require("dapui").eval() end,
+				mode = { "n", "x" },
+				desc = "Evaluate Expression",
 			},
 		},
 		-- automatically open/close the DAP UI when starting/stopping the debugger

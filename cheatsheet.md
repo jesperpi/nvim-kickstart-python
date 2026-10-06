@@ -11,6 +11,8 @@ This is the quick-reference source for this config.
 - `<leader>` = `,`
 - `<localleader>` = `;`
 - `%%` (command line): expands to the current file's directory, e.g. `:e %%<Tab>`
+- `<C-s>`: window prefix instead of `<C-w>` (which still works), e.g. `<C-s>v` split, `<C-s>h` move left, `<C-s>q` close
+- `<C-s><C-s>`: next window
 
 ## Startup
 - `.nvim_session.vim` in the working directory is sourced automatically on startup.

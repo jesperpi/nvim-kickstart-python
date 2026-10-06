@@ -18,6 +18,12 @@ vim.opt.wildignorecase = true
 -- This makes `:e %%<Tab>` complete files next to the file you are editing.
 vim.cmd([[cnoremap <expr> %% getcmdtype() == ":" ? expand("%:h") .. "/" : "%%"]])
 
+-- `<C-s>` is the window prefix, easier to press than `<C-w>` (which still works):
+-- `<C-s>v` splits, `<C-s>h` moves left, and so on. `<C-s><C-s>` goes to the next
+-- window like `<C-w><C-w>`, where `<C-w><C-s>` would split instead.
+vim.keymap.set("n", "<C-s>", "<C-w>", { desc = "Window commands (like <C-w>)" })
+vim.keymap.set("n", "<C-s><C-s>", "<C-w>w", { desc = "Next window" })
+
 -- BOOTSTRAP the plugin manager `lazy.nvim` https://lazy.folke.io/installation
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 local lazyLocallyAvailable = vim.uv.fs_stat(lazypath) ~= nil

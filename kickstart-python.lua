@@ -1011,6 +1011,36 @@ vim.api.nvim_create_autocmd("VimEnter", {
 	end,
 })
 
+if profile.java.enabled then
+	-- `:DepGraph [includes]` draws the Maven dependency graph of the current file's module with
+	-- depgraph-maven-plugin and Graphviz, and opens the PNG in a new tab (image.nvim shows it in kitty).
+	-- `includes` filters the modules, e.g. `:DepGraph se.mynt*`; the profile sets the default.
+	vim.api.nvim_create_user_command("DepGraph", function(opts)
+		local module_dir = vim.fs.root(0, "pom.xml")
+		if not module_dir then
+			vim.notify("DepGraph: no pom.xml above this file", vim.log.levels.WARN)
+			return
+		end
+		if vim.fn.executable("dot") == 0 then
+			vim.notify("DepGraph: Graphviz's `dot` is missing (brew install graphviz)", vim.log.levels.ERROR)
+			return
+		end
+		local includes = opts.args ~= "" and opts.args or profile.java.depgraph_includes
+		local cmd = { "mvn", "-q", "-B", "-f", module_dir .. "/pom.xml", "depgraph:graph", "-DcreateImage=true" }
+		if includes ~= "" then table.insert(cmd, "-Dincludes=" .. includes) end
+		local png = module_dir .. "/target/dependency-graph.png"
+		vim.notify("DepGraph: drawing " .. vim.fn.fnamemodify(module_dir, ":h:t") .. "/" .. vim.fs.basename(module_dir) .. " ...")
+		vim.system(cmd, { text = true }, vim.schedule_wrap(function(result)
+			if result.code ~= 0 or not vim.uv.fs_stat(png) then
+				vim.notify("DepGraph failed:\n" .. result.stdout .. result.stderr, vim.log.levels.ERROR)
+				return
+			end
+			vim.cmd.tabedit(png)
+		end))
+	end, { nargs = "?", desc = "Show the Maven dependency graph of this module" })
+	vim.keymap.set("n", "<leader>vm", "<cmd>DepGraph<cr>", { desc = "View Module Dependency Graph" })
+end
+
 -- profile-specific setup, see `lua/profiles/`
 profile.setup()
 

@@ -12,6 +12,7 @@ local defaults = {
 		enabled = true, -- jdtls, neotest-java
 		debug = false, -- java-debug-adapter and java-test bundles for nvim-dap
 		lombok = false, -- run jdtls with the lombok agent that ships with Mason's jdtls
+		depgraph_includes = "", -- default filter for `:DepGraph`, e.g. "com.example*"; empty shows everything
 	},
 	typeset = true, -- LaTeX and Quarto support from `lua/typeset.lua`
 	image = true, -- image.nvim (needs a kitty-protocol terminal and ImageMagick)

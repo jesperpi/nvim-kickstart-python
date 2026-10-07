@@ -74,6 +74,10 @@ This is the quick-reference source for this config.
   - `<leader>jm` (visual): extract method
   - `<leader>ju`: reload the project config (`:JdtUpdateConfig`)
   - `:JdtUpdateDebugConfig`: refresh the debug launch configurations for main classes.
+- Maven dependency graph (Java profiles)
+  - `<leader>vm` / `:DepGraph [includes]`: draw the current module's dependency graph and open it as an image in a new tab.
+  - `includes` filters modules, e.g. `:DepGraph se.mynt*`; the profile's `java.depgraph_includes` is the default.
+  - Needs Graphviz (`dot`) and `depgraph-maven-plugin`; the image shows in kitty through image.nvim.
 - `blink.cmp` (`keymap.preset = "default"`)
   - Common defaults include completion accept/select/navigation keys from Blink's default preset.
   - If behavior differs, check current Blink docs for exact default mapping set.

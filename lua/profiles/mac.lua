@@ -6,6 +6,7 @@ return {
 		enabled = true,
 		debug = true,
 		lombok = true,
+		depgraph_includes = "se.mynt*", -- only Rider's own modules in `:DepGraph`
 	},
 	typeset = false,
 	image = true,

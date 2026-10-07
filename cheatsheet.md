@@ -57,6 +57,8 @@ This is the quick-reference source for this config.
   - `<leader>c`: code action
   - `<leader>e`: show the complete diagnostic under the cursor
   - `<C-f>`: format file
+  - `<leader>vi` / `<leader>vo`: incoming / outgoing calls of the function under the cursor (quickfix list)
+  - `<leader>vs` / `<leader>vp`: subtypes / supertypes of the type under the cursor (quickfix list)
 - `nvim-jdtls` (Java files)
   - Requires Java 21 or newer to run the language server; projects may target older Java versions.
   - Recognizes Maven, Gradle, Ant, wrapper, and Git project roots.

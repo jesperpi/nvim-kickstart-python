@@ -102,6 +102,7 @@ local plugins = {
 	-- `gd` and `gr` for goto definition / references
 	-- `<C-f>` for formatting
 	-- `<leader>c` for code actions (organize imports, etc.)
+	-- `<leader>vi` / `<leader>vo` for incoming / outgoing calls, `<leader>vs` / `<leader>vp` for sub- / supertypes
 	{
 		"neovim/nvim-lspconfig",
 		keys = {
@@ -110,6 +111,10 @@ local plugins = {
 			{ "<leader>c", vim.lsp.buf.code_action, desc = "Code Action" },
 			{ "<leader>e", vim.diagnostic.open_float, desc = "Show Diagnostic" },
 			{ "<C-f>", vim.lsp.buf.format, desc = "Format File" },
+			{ "<leader>vi", vim.lsp.buf.incoming_calls, desc = "View Incoming Calls" },
+			{ "<leader>vo", vim.lsp.buf.outgoing_calls, desc = "View Outgoing Calls" },
+			{ "<leader>vs", function() vim.lsp.buf.typehierarchy("subtypes") end, desc = "View Subtypes" },
+			{ "<leader>vp", function() vim.lsp.buf.typehierarchy("supertypes") end, desc = "View Supertypes" },
 		},
 		init = function()
 			-- this snippet enables auto-completion

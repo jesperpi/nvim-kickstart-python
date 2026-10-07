@@ -35,6 +35,10 @@ This is the quick-reference source for this config.
 - Requires the external `fzf` binary.
 - `<leader>ff`: find Git-tracked project files.
 - `<leader>fF`: find files under the current working directory.
+- `<leader>fg`: find modified files (staged, unstaged and untracked).
+- `<leader>f1`: find files changed in the latest commit (`HEAD`).
+- `<leader>f2`: find files changed in the commit before that (`HEAD~1`).
+- `<leader>f3`: find files changed two commits back (`HEAD~2`).
 - `<leader>fs`: live grep project text.
 - `<leader>fb`: find open buffers.
 - `<leader>fr`: find recently opened files.

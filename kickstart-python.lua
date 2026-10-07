@@ -75,6 +75,11 @@ vim.list_extend(mason_tools, profile.mason)
 vim.list_extend(treesitter_parsers, profile.treesitter)
 vim.list_extend(lsp_servers, profile.lsp)
 
+-- fzf-lua picker over the files changed in a commit, previewing each file's diff
+local function git_commit_files(rev)
+	require("fzf-lua").git_diff({ ref = rev, ref1 = rev .. "~", prompt = rev .. "> " })
+end
+
 local plugins = {
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
 
@@ -267,6 +272,26 @@ local plugins = {
 				"<leader>fF",
 				function() require("fzf-lua").files() end,
 				desc = "Find Files",
+			},
+			{
+				"<leader>fg",
+				function() require("fzf-lua").git_status() end,
+				desc = "Find Modified Files",
+			},
+			{
+				"<leader>f1",
+				function() git_commit_files("HEAD") end,
+				desc = "Find Files In HEAD Commit",
+			},
+			{
+				"<leader>f2",
+				function() git_commit_files("HEAD~1") end,
+				desc = "Find Files In HEAD~1 Commit",
+			},
+			{
+				"<leader>f3",
+				function() git_commit_files("HEAD~2") end,
+				desc = "Find Files In HEAD~2 Commit",
 			},
 			{
 				"<leader>fs",

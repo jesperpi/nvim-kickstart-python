@@ -575,6 +575,7 @@ local plugins = {
 			{
 				"<leader>tn",
 				function()
+					vim.cmd("silent update")
 					local neotest = require("neotest")
 					neotest.run.run()
 					neotest.summary.open()
@@ -584,6 +585,7 @@ local plugins = {
 			{
 				"<leader>tc",
 				function()
+					vim.cmd("silent update")
 					local neotest = require("neotest")
 					neotest.run.run(vim.fn.expand("%"))
 					neotest.summary.open()

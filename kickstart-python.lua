@@ -610,7 +610,20 @@ local plugins = {
 		config = function()
 			local adapters = {}
 			if profile.python then table.insert(adapters, require("neotest-python")({ runner = "pytest" })) end
-			if profile.java.enabled then table.insert(adapters, require("neotest-java")({})) end
+			if profile.java.enabled then
+				local java = require("neotest-java")({})
+				-- neotest-java keeps any dir whose path contains "test", so it walks target*/test-classes
+				-- and treats compiled *Test.class files as test files. With jdtls autobuilding into
+				-- target-ide/ that is thousands of files, and rendering their status freezes nvim.
+				local filter_dir = java.filter_dir
+				java.filter_dir = function(name, rel_path, root)
+					if name:match("^target") then return false end
+					return filter_dir(name, rel_path, root)
+				end
+				local is_test_file = java.is_test_file
+				java.is_test_file = function(path) return path:match("%.java$") ~= nil and is_test_file(path) end
+				table.insert(adapters, java)
+			end
 			require("neotest").setup({
 				adapters = adapters,
 				icons = {

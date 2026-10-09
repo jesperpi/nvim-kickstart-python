@@ -626,6 +626,10 @@ local plugins = {
 			end
 			require("neotest").setup({
 				adapters = adapters,
+				-- Discovery scans every test file under the project root and renders their status on the
+				-- main thread; on a large Maven repo (~4,000 test files) that freezes nvim for minutes.
+				-- Without it neotest only knows the test files that are open, which is all ,tn and ,tc need.
+				discovery = { enabled = not profile.java.enabled },
 				icons = {
 					passed = "P",
 					failed = "F",

@@ -125,7 +125,7 @@ This is the quick-reference source for this config.
 - `neotest` (`neotest-python` with pytest, `neotest-java` with Maven/Gradle)
   - `<leader>tn`: run the test under the cursor
   - `<leader>tc`: run the current test class/file
-  - `<leader>ta`: run all tests
+  - `<leader>ta`: run all tests (with Java enabled: only tests in open files, since discovery is off)
   - `<leader>ts`: toggle the test summary
   - The summary opens on the left after each run.
   - `:NeotestJava setup`: download the JUnit runner that `neotest-java` needs (once).

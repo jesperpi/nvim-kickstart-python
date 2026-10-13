@@ -228,6 +228,7 @@ local plugins = {
 						local function map(mode, lhs, rhs, desc)
 							vim.keymap.set(mode, lhs, rhs, { buffer = attached_bufnr, desc = "Java: " .. desc })
 						end
+						map("n", "gl", require("java_impl").goto_implementation, "Goto Implementation")
 						map("n", "<leader>co", jdtls.organize_imports, "Organize Imports")
 						map({ "n", "x" }, "<leader>jv", jdtls.extract_variable, "Extract Variable")
 						map({ "n", "x" }, "<leader>jc", jdtls.extract_constant, "Extract Constant")

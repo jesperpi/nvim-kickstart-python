@@ -68,6 +68,7 @@ This is the quick-reference source for this config.
   - Runs with the Lombok agent, so Lombok-generated methods resolve.
   - Maven dependency sources are downloaded for goto definition.
   - Asks before reloading the project when a build file changes.
+  - `gl`: go to the production implementation of the interface or method under the cursor; test and generated code are skipped, and Dagger `@Binds`/`@Provides` decide when there are none or several (lambda bindings included). On an actor call (`actor.tell().update(…)`) or `Actor<X>`, goes to the actor's implementation. Several candidates open a picker.
   - `<leader>co`: organize, add, remove, and sort imports in the current Java file.
   - `<leader>jv` (normal/visual): extract variable
   - `<leader>jc` (normal/visual): extract constant

@@ -102,6 +102,7 @@ local plugins = {
 	-- `gd` and `gr` for goto definition / references
 	-- `<C-f>` for formatting
 	-- `<leader>c` for code actions (organize imports, etc.)
+	-- `<leader>rn` to rename the symbol under the cursor everywhere (a Java class renames its file too)
 	-- `<leader>vi` / `<leader>vo` for incoming / outgoing calls, `<leader>vs` / `<leader>vp` for sub- / supertypes
 	{
 		"neovim/nvim-lspconfig",
@@ -109,6 +110,7 @@ local plugins = {
 			{ "gd", vim.lsp.buf.definition, desc = "Goto Definition" },
 			{ "gr", vim.lsp.buf.references, desc = "Goto References" },
 			{ "<leader>c", vim.lsp.buf.code_action, desc = "Code Action" },
+			{ "<leader>rn", vim.lsp.buf.rename, desc = "Rename Symbol" },
 			{ "<leader>e", vim.diagnostic.open_float, desc = "Show Diagnostic" },
 			{ "<C-f>", vim.lsp.buf.format, desc = "Format File" },
 			{ "<leader>vi", vim.lsp.buf.incoming_calls, desc = "View Incoming Calls" },

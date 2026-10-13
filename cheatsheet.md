@@ -55,6 +55,7 @@ This is the quick-reference source for this config.
   - `gd`: goto definition
   - `gr`: goto references
   - `<leader>c`: code action
+  - `<leader>rn`: rename the symbol under the cursor and its references in every file; `:wa` saves the changed files afterwards.
   - `<leader>e`: show the complete diagnostic under the cursor
   - `<C-f>`: format file
   - `<leader>vi` / `<leader>vo`: incoming / outgoing calls of the function under the cursor (quickfix list)
@@ -73,6 +74,13 @@ This is the quick-reference source for this config.
   - `<leader>jv` (normal/visual): extract variable
   - `<leader>jc` (normal/visual): extract constant
   - `<leader>jm` (visual): extract method
+  - `<leader>rn`: rename a class, method, field or variable everywhere; renaming a class renames its file. Strings and comments are not updated.
+  - More refactorings through `<leader>c` (code action) with the cursor on the code; the menu offers what fits there:
+    - Rename and move: move a class to another package or file, move a method or static member (`Move …`).
+    - Signatures: change a method signature in a prompt buffer (`Change signature`), introduce a parameter, make a method static.
+    - Extract and inline: extract to field, method or local variable (all occurrences or one), inline a local variable or method.
+    - Conversions: anonymous class to lambda or nested class, a local's type to `var`, split a declaration, add `final`.
+    - Generate: getters and setters, constructors, `toString()`, `hashCode()` and `equals()`, delegate methods, override or implement methods, Javadoc.
   - `<leader>ju`: reload the project config (`:JdtUpdateConfig`)
   - `:JdtUpdateDebugConfig`: refresh the debug launch configurations for main classes.
 - Maven dependency graph (Java profiles)

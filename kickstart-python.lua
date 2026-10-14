@@ -684,6 +684,13 @@ local plugins = {
 	{
 		"tpope/vim-fugitive",
 	},
+	-- GitHub PRs, issues and reviews via `:Octo` (needs `gh auth login`)
+	{
+		"pwntester/octo.nvim",
+		dependencies = { "nvim-lua/plenary.nvim", "ibhagwan/fzf-lua" },
+		cmd = "Octo",
+		opts = { picker = "fzf-lua" },
+	},
 	{
 		"stevearc/overseer.nvim",
 		opts = {},

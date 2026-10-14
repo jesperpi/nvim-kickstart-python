@@ -209,6 +209,24 @@ This is the quick-reference source for this config.
     - `com` -> `Git commit`
     - `add` -> `Git add`
     - `adda` -> `Git add -A`
+- `octo.nvim`
+  - GitHub PRs, issues and reviews; needs `gh auth login` once
+  - PRs:
+    - `:Octo pr list`: pick a PR (`<C-o>` checkout, `<C-b>` browser)
+    - `:Octo pr checkout`, `:Octo pr checks`, `:Octo pr browser`
+    - `:Octo pr merge squash`
+  - Reviews:
+    - `:Octo review start` / `:Octo review resume`
+    - `:Octo review submit` / `:Octo review discard`
+  - In a PR/issue buffer (`<localleader>` is `;`):
+    - `;ca`: add comment
+    - `;po`: checkout PR, `;psm`: squash and merge
+    - `;rt` / `;rT`: resolve / unresolve thread
+    - `<C-r>`: reload, `<C-b>`: open in browser, `gf`: go to file
+  - In a review diff:
+    - `;ca`: comment on line/selection, `;sa`: suggestion
+    - `]t` / `[t`: next / previous thread, `]q` / `[q`: next / previous file
+    - `;vs`: submit (`<C-a>` approve, `<C-m>` comment, `<C-r>` request changes)
 - `overseer.nvim`
   - `:Make`: run `makeprg` as Overseer task (custom user command in this config)
   - Common Overseer commands:

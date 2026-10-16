@@ -329,6 +329,23 @@ local plugins = {
 		},
 		opts = {},
 	},
+
+	-- FILE EXPLORER
+	-- * edit a directory like a buffer: rename, move, create and delete files by
+	-- editing lines, then `:w` to apply. Renames go through the LSP, so jdtls
+	-- updates references when a Java file moves.
+	-- * `-` opens the current file's directory (and goes up from there)
+	{
+		"stevearc/oil.nvim",
+		lazy = false, -- replaces netrw, so `nvim .` and `:e dir/` open oil
+		keys = {
+			{ "-", "<cmd>Oil<cr>", desc = "Open Parent Directory" },
+		},
+		opts = {
+			default_file_explorer = true,
+			skip_confirm_for_simple_edits = true,
+		},
+	},
 	-----------------------------------------------------------------------------
 	-- PYTHON REPL
 	-- A basic REPL that opens up as a horizontal split

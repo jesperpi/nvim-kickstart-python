@@ -46,6 +46,14 @@ This is the quick-reference source for this config.
 - `<leader>fc`: find and run Vim commands.
 - `:FzfLua`: run any fzf-lua picker by name, e.g. `:FzfLua live_grep`.
 
+## File Explorer (oil.nvim)
+- `-`: open the current file's directory; press again to go up.
+- `<CR>`: open the file or directory under the cursor.
+- Edit the listing like text, then `:w` to apply: change a name to rename, add a line (`name` or `dir/`) to create, `dd` to delete, `dd` + `p` in another directory to move.
+- Renames and moves go through the LSP, so jdtls can update references.
+- `g.`: toggle hidden files. `<C-p>`: preview. `g?`: show all keys.
+- `nvim <dir>` and `:e <dir>` open oil instead of netrw.
+
 ## Hotkeys and Commands by Plugin
 
 ### Mason / LSP / Completion

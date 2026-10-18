@@ -81,6 +81,14 @@ local function git_commit_files(rev)
 end
 
 local plugins = {
+	-- Expose bounded editor context over MCP; :AgentContextPath enables debug files.
+	{
+		dir = vim.fn.expand("~/workspace/agent-context.nvim"),
+		name = "agent-context.nvim",
+		main = "agent_context",
+		event = "VimEnter",
+		opts = {},
+	},
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
 
 	-- MASON
